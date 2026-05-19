@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (NUNCA commitear claves secretas: RESEND_API_KEY, etc.)
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Claude Code (config local del desarrollador)
+.claude/worktrees/
+.claude/settings.local.json

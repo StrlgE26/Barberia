@@ -1,0 +1,9 @@
+{
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/", "destination": "/html/index.html" },
+    { "source": "/confirmar", "destination": "/html/confirmar.html" },
+    { "source": "/dashboard", "destination": "/html/dashboard.html" },
+    { "source": "/kiosko", "destination": "/html/kiosko.html" }
+  ]
+}
