@@ -1044,7 +1044,7 @@ function actualizarNavAuth() {
           sessionStorage.setItem('sb_token',   sesionCliente.token);
           sessionStorage.setItem('sb_refresh', localStorage.getItem('sb_cli_refresh'));
           sessionStorage.setItem('sb_user',    localStorage.getItem('sb_cli_user'));
-          window.location.href = './dashboard.html';
+          window.location.href = '/dashboard';
           return;
         }
       } catch (_) {}
