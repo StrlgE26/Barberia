@@ -100,7 +100,7 @@ export default async function handler(req, res) {
 
     // 3. Enviar email via Resend
     const emailResponse = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'noreply@koddesolutions.com',
       to: email_cliente,
       subject: `Confirma tu cita con ${barbero_nombre} - Tu Barbería`,
       html: `
