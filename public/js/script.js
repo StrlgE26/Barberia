@@ -1363,64 +1363,73 @@ async function registrarCliente(email, password, nombre, apellido, telefono) {
 async function asegurarClienteRegistrado(token, user) {
   if (!user || !user.id) return null;
 
-  // 1) ¿Ya existe?
-  try {
-    const existing = await db.get(
-      'cliente',
-      'id_cliente,nombre',
-      { auth_user_id: user.id },
-      token
-    );
-    if (existing.length) {
-      sesionCliente.nombre = existing[0].nombre || null;
-      if (existing[0].nombre) localStorage.setItem('sb_cli_nombre', existing[0].nombre);
-      return existing[0].id_cliente;
-    }
-  } catch (err) {
-    console.warn('Lookup de cliente falló:', err);
-  }
-
-  // 2) No existe → intentar crear con user_metadata
   const meta = user.user_metadata || {};
   const nombre   = (meta.nombre   || '').trim();
   const apellido = (meta.apellido || '').trim();
   const telefono = (meta.telefono || '').trim();
 
-  if (!nombre || !telefono) {
-    console.warn('user_metadata sin nombre/telefono: no se puede crear fila cliente.');
-    return null;
-  }
-
+  // RPC que hace TODO en una sola llamada (SECURITY DEFINER):
+  //  · Si el usuario ya está vinculado → devuelve su id_cliente.
+  //  · Si existe un cliente anónimo con el mismo email o teléfono →
+  //    UPGRADE in-place (set auth_user_id, tipo='registrado') preservando
+  //    citas históricas.
+  //  · Si no existe → INSERT nuevo con tipo='registrado'.
+  //  · Si el email ya pertenece a OTRO usuario registrado → conflicto.
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/cliente`, {
-      method: 'POST',
-      headers: {
-        'apikey':        SUPABASE_KEY,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type':  'application/json',
-        'Prefer':        'return=representation',
-      },
-      body: JSON.stringify({
-        auth_user_id: user.id,
-        nombre,
-        apellido: apellido || null,
-        telefono,
-        email: user.email,
-        tipo: 'registrado',
-      }),
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/vincular_o_crear_cliente_registrado`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey':        SUPABASE_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({
+          p_user_id:  user.id,
+          p_email:    user.email || '',
+          p_nombre:   nombre,
+          p_apellido: apellido,
+          p_telefono: telefono,
+        }),
+      }
+    );
     if (!res.ok) {
-      console.error('Insert cliente falló:', await res.text());
+      console.error('RPC vincular_o_crear_cliente_registrado falló:', await res.text());
       return null;
     }
-    const [row] = await res.json();
-    if (row?.nombre) {
-      sesionCliente.nombre = row.nombre;
-      localStorage.setItem('sb_cli_nombre', row.nombre);
+    const data = await res.json();
+    const result = Array.isArray(data) ? data[0] : data;
+
+    if (!result?.ok) {
+      console.warn('Vincular cliente:', result?.accion, result?.mensaje);
+      // Si fue conflicto de email, avisar visualmente
+      if (result?.accion === 'conflict_email' && typeof showToast === 'function') {
+        showToast(result.mensaje, 'error');
+      }
+      return null;
     }
-    return row?.id_cliente || null;
+
+    // Log diagnóstico: indica si se hizo upgrade, se creó nuevo, o ya existía
+    console.info(`Cliente: ${result.accion} (${result.id_cliente})`);
+
+    // Refrescar nombre en sesión leyendo el row final
+    try {
+      const rows = await db.get(
+        'cliente',
+        'id_cliente,nombre',
+        { id_cliente: result.id_cliente },
+        token
+      );
+      if (rows.length && rows[0].nombre) {
+        sesionCliente.nombre = rows[0].nombre;
+        localStorage.setItem('sb_cli_nombre', rows[0].nombre);
+      }
+    } catch (_) {}
+
+    return result.id_cliente;
   } catch (err) {
-    console.error('Error creando cliente:', err);
+    console.error('Error en asegurarClienteRegistrado:', err);
     return null;
   }
 }

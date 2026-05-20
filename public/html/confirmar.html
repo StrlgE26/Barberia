@@ -3,178 +3,253 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmar Cita</title>
+  <title>Confirmar Cita — The Hipster</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* Paleta y tipografías de The Hipster */
+    :root {
+      --clr-bg:          #0d0d0d;
+      --clr-bg-2:        #141414;
+      --clr-surface:     #1e1e1e;
+      --clr-border:      rgba(255,255,255,0.08);
+      --clr-border-gold: rgba(184,142,60,0.3);
+      --clr-white:       #ffffff;
+      --clr-white-70:    rgba(255,255,255,0.7);
+      --clr-white-40:    rgba(255,255,255,0.4);
+      --clr-gold:        #b88e3c;
+      --clr-gold-light:  #d4a853;
+      --clr-gold-glow:   rgba(184,142,60,0.25);
+      --font-display:    'Playfair Display', Georgia, serif;
+      --font-heading:    'Barlow Condensed', sans-serif;
+      --font-body:       'Barlow', sans-serif;
     }
 
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: var(--font-body);
+      font-weight: 300;
+      background: var(--clr-bg);
+      color: var(--clr-white);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      line-height: 1.6;
+    }
+
+    /* Toque decorativo sutil — viñeta dorada en el fondo */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(184,142,60,0.08), transparent 50%),
+        radial-gradient(circle at 80% 90%, rgba(184,142,60,0.06), transparent 55%);
+      z-index: 0;
     }
 
     .container {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      padding: 40px;
-      max-width: 500px;
+      position: relative;
+      z-index: 1;
+      background: var(--clr-bg-2);
+      border: 1px solid var(--clr-border-gold);
+      border-radius: 20px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.8), 0 0 40px var(--clr-gold-glow);
+      padding: 48px 40px;
+      max-width: 520px;
       width: 100%;
       text-align: center;
+    }
+
+    .brand-tag {
+      display: inline-block;
+      font-family: var(--font-heading);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--clr-gold);
+      margin-bottom: 22px;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+    .brand-tag::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--clr-gold);
     }
 
     .loading {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      gap: 22px;
     }
 
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid #f0f0f0;
-      border-top: 4px solid #667eea;
+      width: 56px;
+      height: 56px;
+      border: 3px solid var(--clr-surface);
+      border-top: 3px solid var(--clr-gold);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.9s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .success {
-      display: none;
-      animation: slideIn 0.5s ease-out;
-    }
-
-    .error {
-      display: none;
-      animation: slideIn 0.5s ease-out;
-    }
-
+    .success, .error { display: none; animation: slideIn 0.5s cubic-bezier(0.4,0,0.2,1); }
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
+    .success-icon, .error-icon {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 700;
+    }
     .success-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      background: #27ae60;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
+      background: rgba(34, 197, 94, 0.12);
+      color: #4ade80;
+      border: 2px solid #4ade80;
     }
-
     .error-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      background: #e74c3c;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
+      background: rgba(192, 57, 43, 0.12);
+      color: #ef6b5a;
+      border: 2px solid #ef6b5a;
     }
 
     h1 {
-      color: #333;
-      margin-bottom: 10px;
-      font-size: 28px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 2.2rem;
+      line-height: 1.1;
+      color: var(--clr-white);
+      margin-bottom: 12px;
     }
+    h1 em { font-style: italic; color: var(--clr-gold); }
 
     p {
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 20px;
+      color: var(--clr-white-70);
+      font-size: 0.96rem;
+      margin-bottom: 18px;
     }
 
     .details {
-      background: #f9f9f9;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      padding: 20px 24px;
+      border-radius: 10px;
+      margin: 24px 0;
       text-align: left;
     }
 
     .details-row {
       display: flex;
       justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--clr-border);
     }
-
-    .details-row:last-child {
-      border-bottom: none;
-    }
+    .details-row:last-child { border-bottom: none; }
 
     .details-label {
-      color: #666;
-      font-weight: 500;
+      font-family: var(--font-heading);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--clr-white-40);
     }
-
     .details-value {
-      color: #333;
-      font-weight: bold;
+      color: var(--clr-white);
+      font-weight: 500;
+      text-align: right;
     }
 
     .button {
-      display: inline-block;
-      background: #667eea;
-      color: white;
-      padding: 12px 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--clr-gold);
+      color: var(--clr-bg);
+      padding: 0.85rem 2rem;
       border-radius: 6px;
       text-decoration: none;
-      font-weight: bold;
-      margin-top: 20px;
-      border: none;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-top: 12px;
+      border: 2px solid var(--clr-gold);
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
     }
-
     .button:hover {
-      background: #5568d3;
+      background: var(--clr-gold-light);
+      border-color: var(--clr-gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 0 28px var(--clr-gold-glow);
     }
 
+    /* Botón secundario para errores: outline */
     .error .button {
-      background: #e74c3c;
+      background: transparent;
+      color: var(--clr-white);
+      border-color: rgba(255,255,255,0.35);
     }
-
     .error .button:hover {
-      background: #c0392b;
+      background: transparent;
+      border-color: var(--clr-white);
+      box-shadow: none;
     }
 
     .message-box {
-      padding: 15px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      font-size: 14px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 16px 0 22px;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+    .warning {
+      background: rgba(234, 179, 8, 0.08);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      color: #facc15;
     }
 
-    .warning {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      color: #856404;
+    /* Tagline al final */
+    .tagline {
+      margin-top: 24px;
+      color: var(--clr-gold);
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 36px 24px; }
+      h1 { font-size: 1.7rem; }
     }
   </style>
 </head>
@@ -182,31 +257,32 @@
   <div class="container">
     <!-- ESTADO: CARGANDO -->
     <div class="loading" id="loading">
+      <p class="brand-tag">The Hipster</p>
       <div class="spinner"></div>
-      <p>Procesando tu confirmación...</p>
+      <p>Procesando tu confirmación…</p>
     </div>
 
     <!-- ESTADO: ÉXITO -->
     <div class="success" id="success">
+      <p class="brand-tag">Reserva confirmada</p>
       <div class="success-icon">✓</div>
-      <h1>¡Cita Confirmada!</h1>
-      <p>Tu reserva ha sido confirmada exitosamente.</p>
+      <h1>Cita <em>Confirmada</em></h1>
+      <p>Tu reserva quedó registrada exitosamente.</p>
 
       <div class="details" id="successDetails">
         <!-- Se llena dinámicamente -->
       </div>
 
-      <p style="margin-top: 20px; color: #27ae60; font-weight: bold;">
-        Te esperamos en la fecha y hora indicada.
-      </p>
+      <p class="tagline">Te esperamos.</p>
 
       <button class="button" onclick="window.location.href='/'">Volver al inicio</button>
     </div>
 
     <!-- ESTADO: ERROR -->
     <div class="error" id="error">
+      <p class="brand-tag">Ocurrió un problema</p>
       <div class="error-icon">✗</div>
-      <h1>Error en la Confirmación</h1>
+      <h1 id="errorTitle">Error en la <em>Confirmación</em></h1>
       <p id="errorMessage"></p>
 
       <div class="message-box warning" id="errorDetails" style="display: none;"></div>
