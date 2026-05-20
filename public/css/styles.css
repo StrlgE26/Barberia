@@ -609,8 +609,14 @@ button {
 
 .services__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-md);
+}
+@media (max-width: 900px) {
+  .services__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .services__grid { grid-template-columns: 1fr; }
 }
 
 /* Separador dorado decorativo */
@@ -1765,4 +1771,136 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   .wizard-step__circle { width: 24px; height: 24px; font-size: 0.7rem; }
   .wizard-step__label  { font-size: 0.66rem; }
   .summary-card        { font-size: 0.82rem; }
+}
+
+/* ============================================================
+   BARBER CARD — variante minimalista
+   Avatar circular centrado + nombre + especialidad + estrellas
+   estéticas (decoración, no funcionalidad) + badge de sucursal.
+   Mantiene la paleta dorado/negro existente.
+   ============================================================ */
+.barber-card--minimal {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition);
+  overflow: visible;
+}
+.barber-card--minimal:hover,
+.barber-card--minimal:focus-visible {
+  border-color: var(--clr-border-gold);
+  transform: translateY(-4px);
+  outline: none;
+}
+
+/* Avatar circular */
+.barber-card__avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--clr-bg);
+  border: 2px solid var(--clr-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--clr-white-40);
+  transition: border-color var(--transition);
+  flex-shrink: 0;
+}
+.barber-card--minimal:hover .barber-card__avatar {
+  border-color: var(--clr-gold);
+}
+.barber-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  filter: grayscale(0.2);
+}
+.barber-card__avatar-icon {
+  width: 56%;
+  height: 56%;
+}
+
+/* Stars (puramente estéticas, siempre 5) */
+.barber-card__stars {
+  display: inline-flex;
+  gap: 3px;
+  color: var(--clr-gold);
+  font-size: 0.95rem;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+
+/* Badge de sucursal */
+.barber-card__sucursal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--clr-border);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clr-white-70);
+  background: rgba(255,255,255,0.02);
+  transition: border-color var(--transition), color var(--transition);
+}
+.barber-card--minimal:hover .barber-card__sucursal {
+  border-color: var(--clr-border-gold);
+  color: var(--clr-white);
+}
+
+/* Refinar tipografía cuando es minimal */
+.barber-card--minimal .barber-card__name {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+}
+.barber-card--minimal .barber-card__branch {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .barber-card--minimal { padding: var(--space-lg) var(--space-md); }
+  .barber-card__avatar { width: 92px; height: 92px; }
+}
+
+/* ============================================================
+   UBICACIÓN — listado multi-sucursal
+   Reutiliza .location__grid (2 cols info+mapa). Si hay N
+   sucursales, se apilan verticalmente con un separador suave.
+   ============================================================ */
+.sucursales-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+.sucursales-list .sucursal-card + .sucursal-card {
+  padding-top: var(--space-2xl);
+  border-top: 1px solid var(--clr-border);
+}
+
+/* Nombre de sucursal (solo se muestra cuando hay >1) */
+.sucursal-card__name {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clr-gold);
+  margin: 0 0 var(--space-md);
 }

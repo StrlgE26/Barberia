@@ -408,57 +408,69 @@ async function cargarBarberos() {
   `;
 
   try {
-    const barberos = await db.get(
-      'v_panel_barberos',
-      'id_empleado,barbero_nombre,barbero_apellidos,especialidad,foto_url,estado_actual,id_sucursal',
-      { id_sucursal: ID_SUCURSAL }
-    );
+    // Fetch barberos + mapa de sucursales en paralelo (badge "ubicación")
+    const [barberos, sucursales] = await Promise.all([
+      db.get(
+        'v_panel_barberos',
+        'id_empleado,barbero_nombre,barbero_apellidos,especialidad,foto_url,estado_actual,id_sucursal',
+        { id_sucursal: ID_SUCURSAL }
+      ),
+      db.get('sucursal', 'id_sucursal,nombre', { activa: 'true' }),
+    ]);
 
     if (barberos.length === 0) {
       track.innerHTML = '<p class="empty-state" style="padding:2rem">No hay barberos registrados.</p>';
       return;
     }
 
-    const coloresEstado = {
-      libre:     { bg: '#1a2e1a', borde: '#2d5a2d', texto: '#4ade80', label: 'Disponible' },
-      en_espera: { bg: '#2e2a1a', borde: '#5a4d2d', texto: '#facc15', label: 'En espera'  },
-      ocupado:   { bg: '#2e1a1a', borde: '#5a2d2d', texto: '#f87171', label: 'Ocupado'    },
-      ausente:   { bg: '#1e1e1e', borde: '#333333', texto: '#9ca3af', label: 'Ausente'    },
-    };
+    const sucursalMap = Object.fromEntries(
+      (sucursales || []).map(s => [s.id_sucursal, s.nombre])
+    );
+
+    // SVG inline para avatar por defecto (cuando no hay foto_url)
+    const defaultAvatarSvg = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+           aria-hidden="true" class="barber-card__avatar-icon">
+        <circle cx="12" cy="9" r="3.4"/>
+        <path d="M5 19c1.5-3.2 4.2-4.8 7-4.8s5.5 1.6 7 4.8"/>
+      </svg>
+    `;
+
+    // SVG pin para la badge de sucursal
+    const pinSvg = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           aria-hidden="true" width="11" height="11">
+        <path d="M12 22s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"/>
+        <circle cx="12" cy="10" r="2.5"/>
+      </svg>
+    `;
 
     track.innerHTML = barberos.map(b => {
-      const estado = coloresEstado[b.estado_actual] || coloresEstado.libre;
-      const imgUrl = b.foto_url ||
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80';
+      const nombreCompleto = `${b.barbero_nombre || ''} ${b.barbero_apellidos || ''}`.trim();
+      const sucursalNombre = sucursalMap[b.id_sucursal] || '';
+      const avatarContent  = b.foto_url
+        ? `<img src="${escapeHtml(b.foto_url)}" alt="${escapeHtml(nombreCompleto)}" loading="lazy"/>`
+        : defaultAvatarSvg;
 
       return `
         <div class="carousel__slide">
-          <article class="barber-card">
-            <div class="barber-card__img-wrap">
-              <img
-                src="${escapeHtml(imgUrl)}"
-                alt="Fotografía de ${escapeHtml(b.barbero_nombre)}"
-                class="barber-card__img"
-                loading="lazy"
-              />
+          <article class="barber-card barber-card--minimal js-open-booking"
+                   role="button" tabindex="0"
+                   data-barber-id="${b.id_empleado}"
+                   data-barber-name="${escapeHtml(b.barbero_nombre)}"
+                   data-context="barber"
+                   aria-label="Agendar con ${escapeHtml(nombreCompleto)}">
+            <div class="barber-card__avatar">${avatarContent}</div>
+            <h3 class="barber-card__name">${escapeHtml(nombreCompleto)}</h3>
+            <p class="barber-card__branch">${escapeHtml(b.especialidad || 'Barbero profesional')}</p>
+            <div class="barber-card__stars" aria-hidden="true">
+              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
             </div>
-            <div class="barber-card__body">
-              <h3 class="barber-card__name">
-                ${escapeHtml(b.barbero_nombre)} ${escapeHtml(b.barbero_apellidos || '')}
-              </h3>
-              <p class="barber-card__branch">
-                ${escapeHtml(b.especialidad || 'Barbero profesional')}
-              </p>
-              ${estado.label}
-              </span>
-              <a href="#"
-                 class="btn btn--outline btn--sm js-open-booking"
-                 data-barber-id="${b.id_empleado}"
-                 data-barber-name="${escapeHtml(b.barbero_nombre)}"
-                 data-context="barber">
-                Agendar con ${escapeHtml(b.barbero_nombre)}
-              </a>
-            </div>
+            ${sucursalNombre ? `
+              <div class="barber-card__sucursal">
+                ${pinSvg}
+                <span>${escapeHtml(sucursalNombre)}</span>
+              </div>` : ''}
           </article>
         </div>
       `;
@@ -471,6 +483,138 @@ async function cargarBarberos() {
     console.error('Error cargando barberos:', err);
     track.innerHTML = '<p class="empty-state" style="padding:2rem">Error al cargar el equipo.</p>';
   }
+}
+
+/* ============================================================
+   6b. SECCIÓN UBICACIÓN — multi-sucursal dinámica
+   Renderiza N bloques (info + mapa) desde la tabla `sucursal`.
+   Con 1 sucursal se ve igual que el diseño original.
+   Con N se apilan verticalmente manteniendo el mismo estilo.
+   ============================================================ */
+async function cargarSucursalesUI() {
+  const container = document.getElementById('sucursalesContainer');
+  const titleEl   = document.getElementById('sucursalesTitle');
+  if (!container) return;
+
+  try {
+    const sucursales = await db.get(
+      'sucursal',
+      'id_sucursal,nombre,direccion,telefono,horario_apertura,horario_cierre',
+      { activa: 'true' }
+    );
+
+    if (!sucursales.length) {
+      container.innerHTML = '<p class="empty-state" style="padding:2rem">Próximamente más sucursales.</p>';
+      if (titleEl) titleEl.innerHTML = 'Nuestras<br><em>sucursales.</em>';
+      return;
+    }
+
+    // Título: con 1 sucursal usamos el nombre de la zona (parte 2 de la
+    // dirección, ej. "Riobamba 690, Lindavista, ..." → "Lindavista").
+    // Con N usamos un título genérico que cubre cualquier cantidad.
+    if (titleEl) {
+      if (sucursales.length === 1) {
+        const zona = extraerZona(sucursales[0].direccion) || sucursales[0].nombre;
+        titleEl.innerHTML = `Visítanos en<br><em>${escapeHtml(zona)}.</em>`;
+      } else {
+        titleEl.innerHTML = 'Nuestras<br><em>sucursales.</em>';
+      }
+    }
+
+    const showName = sucursales.length > 1;
+    container.innerHTML = sucursales.map(s => renderSucursalCard(s, showName)).join('');
+
+    // Registrar el botón "Agendar Cita Aquí" de cada sucursal
+    registrarTriggers();
+  } catch (err) {
+    console.error('Error cargando sucursales:', err);
+    container.innerHTML = '<p class="empty-state" style="padding:2rem">Error al cargar las sucursales.</p>';
+  }
+}
+
+/* Renderiza un bloque de sucursal con el mismo layout 2-col de antes */
+function renderSucursalCard(s, showName) {
+  const tel       = (s.telefono || '').trim();
+  const telDigits = tel.replace(/\D/g, '');
+  const horarioStr = (s.horario_apertura && s.horario_cierre)
+    ? `Lunes – Domingo · ${trimSeconds(s.horario_apertura)} – ${trimSeconds(s.horario_cierre)}`
+    : 'Lunes – Domingo · Siempre abierto';
+  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(s.direccion || s.nombre)}&output=embed`;
+
+  return `
+    <div class="location__grid sucursal-card">
+
+      <div class="location__info">
+
+        ${showName ? `<h3 class="sucursal-card__name">${escapeHtml(s.nombre || '')}</h3>` : ''}
+
+        <ul class="location__details">
+          <li class="location__detail">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div>
+              <strong>Dirección</strong>
+              <span>${escapeHtml(s.direccion || '—')}</span>
+            </div>
+          </li>
+          <li class="location__detail">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div>
+              <strong>Horario</strong>
+              <span>${escapeHtml(horarioStr)}</span>
+            </div>
+          </li>
+          ${tel ? `
+          <li class="location__detail">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.82 19.79 19.79 0 01.5 1.18 2 2 0 012.68 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L7.45 7.35a16 16 0 006.18 6.18l1.71-1.48a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"/></svg>
+            <div>
+              <strong>Teléfono</strong>
+              <a href="tel:${escapeHtml(tel)}">${escapeHtml(tel)}</a>
+            </div>
+          </li>
+          <li class="location__detail">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            <div>
+              <strong>WhatsApp</strong>
+              <a href="https://wa.me/52${escapeHtml(telDigits)}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+            </div>
+          </li>` : ''}
+        </ul>
+
+        <a href="#"
+           class="btn btn--primary js-open-booking"
+           data-context="location"
+           data-sucursal-id="${s.id_sucursal}">
+          Agendar Cita Aquí
+        </a>
+
+      </div>
+
+      <div class="location__map">
+        <iframe
+          src="${mapSrc}"
+          width="100%"
+          height="100%"
+          style="border:0;"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Ubicación ${escapeHtml(s.nombre || '')}"
+        ></iframe>
+      </div>
+
+    </div>
+  `;
+}
+
+/* Helpers — usados solo por la sección de sucursales */
+function extraerZona(direccion) {
+  if (!direccion) return '';
+  const parts = direccion.split(',').map(p => p.trim()).filter(Boolean);
+  return parts.length >= 2 ? parts[1] : (parts[0] || '');
+}
+function trimSeconds(timeStr) {
+  // "09:00:00" → "09:00"
+  return String(timeStr || '').slice(0, 5);
 }
 
 /* ============================================================
@@ -1047,6 +1191,61 @@ const sesionCliente = {
   nombre:  localStorage.getItem('sb_cli_nombre') || null,
 };
 
+/* ------------------------------------------------------------
+   Capturar retorno desde verificación de email de Supabase Auth.
+   Cuando el cliente hace click en el link del correo, Supabase
+   redirige al Site URL con tokens en el hash:
+     /#access_token=...&refresh_token=...&type=signup
+   Guardamos la sesión, limpiamos la URL y avisamos al usuario.
+   ------------------------------------------------------------ */
+(function captureAuthReturn() {
+  if (!window.location.hash || !window.location.hash.includes('access_token=')) return;
+
+  const params       = new URLSearchParams(window.location.hash.slice(1));
+  const accessToken  = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const type         = params.get('type'); // 'signup' | 'recovery' | 'magiclink' | ...
+  if (!accessToken) return;
+
+  // Decodificar payload del JWT para obtener id, email y nombre
+  let user = null;
+  try {
+    const b64  = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(b64);
+    const payload = JSON.parse(decodeURIComponent(escape(json)));
+    user = {
+      id:    payload.sub,
+      email: payload.email,
+      user_metadata: payload.user_metadata || {},
+    };
+  } catch (err) {
+    console.warn('No se pudo decodificar el JWT del hash:', err);
+  }
+
+  if (user) {
+    sesionCliente.token   = accessToken;
+    sesionCliente.usuario = user;
+    sesionCliente.nombre  = user.user_metadata?.nombre || null;
+    localStorage.setItem('sb_cli_token', accessToken);
+    if (refreshToken) localStorage.setItem('sb_cli_refresh', refreshToken);
+    localStorage.setItem('sb_cli_user', JSON.stringify(user));
+    if (sesionCliente.nombre) localStorage.setItem('sb_cli_nombre', sesionCliente.nombre);
+  }
+
+  // Limpiar el hash para que el token no quede visible en la URL
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+
+  // Feedback al usuario y refresco del navbar (en el siguiente tick: showToast
+  // se define después en el archivo).
+  const mensaje = type === 'signup'
+    ? '✓ Email confirmado. Sesión iniciada.'
+    : '✓ Sesión iniciada.';
+  setTimeout(() => {
+    if (typeof showToast === 'function') showToast(mensaje, 'success');
+    if (typeof actualizarNavAuth === 'function') actualizarNavAuth();
+  }, 400);
+})();
+
 async function loginCliente(email, password) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -1097,6 +1296,16 @@ function logoutCliente() {
   sesionCliente.usuario = null;
   sesionCliente.nombre  = null;
   ['sb_cli_token','sb_cli_refresh','sb_cli_user','sb_cli_nombre'].forEach(k => localStorage.removeItem(k));
+
+  // Limpiar formularios para no dejar rastro de sesión anterior
+  document.getElementById('authLoginForm')?.reset();
+  document.getElementById('authRegisterForm')?.reset();
+  document.getElementById('bookingForm')?.reset();
+  const loginErr = document.getElementById('authLoginError');
+  const regErr   = document.getElementById('authRegisterError');
+  if (loginErr) loginErr.textContent = '';
+  if (regErr)   regErr.textContent   = '';
+
   actualizarNavAuth();
   showToast('Sesión cerrada.', 'success');
 }
@@ -1134,6 +1343,16 @@ function actualizarNavAuth() {
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    // Limpiar formularios y mensajes de error: que no queden datos sensibles
+    // ni huellas de un intento anterior al volver a abrir.
+    document.getElementById('authLoginForm')?.reset();
+    document.getElementById('authRegisterForm')?.reset();
+    const loginErr = document.getElementById('authLoginError');
+    const regErr   = document.getElementById('authRegisterError');
+    if (loginErr) loginErr.textContent = '';
+    if (regErr)   regErr.textContent   = '';
+    // Volver siempre al tab de login para el próximo open
+    switchTab('login');
   }
 
   window._openAuthModal = openAuthModal;
@@ -1242,8 +1461,23 @@ function actualizarNavAuth() {
     try {
       await registrarCliente(email, password, nombre);
       actualizarNavAuth();
-      closeAuthModal();
-      showToast('¡Cuenta creada! Bienvenido.', 'success');
+
+      // Si Supabase requiere confirmación de email (lo habitual), no hay
+      // access_token todavía. Avisar al usuario y cambiar al tab de login
+      // para que sepa que después de verificar puede entrar.
+      if (!sesionCliente.token) {
+        e.target.reset();   // limpiar el form de registro
+        switchTab('login');
+        // Pre-llenar el email en el login para que solo tenga que poner pass
+        const loginEmailEl = document.getElementById('authEmail');
+        if (loginEmailEl) loginEmailEl.value = email;
+        showToast('✓ Cuenta creada. Revisa tu email para verificar tu cuenta antes de iniciar sesión.', 'success');
+      } else {
+        // Supabase devolvió sesión directa (poco común sin confirmación)
+        e.target.reset();
+        closeAuthModal();
+        showToast('¡Cuenta creada! Bienvenido.', 'success');
+      }
     } catch (err) {
       errEl.textContent = err.message;
     } finally {
@@ -1496,10 +1730,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Registrar triggers estáticos (FAB, nav, hero)
   registrarTriggers();
 
-  // Cargar servicios y barberos en paralelo desde Supabase
+  // Cargar servicios, barberos y sucursales en paralelo desde Supabase
   await Promise.all([
     cargarServicios(),
     cargarBarberos(),
+    cargarSucursalesUI(),
   ]);
 
   // Scroll reveal sobre los elementos ya renderizados

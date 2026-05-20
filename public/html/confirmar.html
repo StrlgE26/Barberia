@@ -274,8 +274,8 @@
           return;
         }
 
-        // Éxito: obtener datos de la cita
-        const idCita = result.cita_id;
+        // Éxito: obtener datos de la cita (la RPC retorna columna id_cita)
+        const idCita = result.id_cita || result.cita_id;
         obtenerDetallesCita(idCita);
       } catch (error) {
         console.error('Error:', error);
