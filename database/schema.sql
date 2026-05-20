@@ -3335,7 +3335,7 @@ RETURNS TABLE (
   fecha_cita TIMESTAMPTZ,
   hora_cita TIME,
   barbero_nombre VARCHAR,
-  servicio_nombre VARCHAR
+  servicio_nombre TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER

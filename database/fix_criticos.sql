@@ -19,11 +19,15 @@ ALTER TYPE estado_cita ADD VALUE IF NOT EXISTS 'pendiente_confirmacion';
 
 
 -- ------------------------------------------------------------
--- FIX 2 — URL de confirmacion: dominio real de produccion
--- Antes apuntaba a https://tubarberia.com (dominio inexistente),
--- el boton del email no funcionaba.
+-- FIX 2 — URL de confirmacion + tipo de retorno
+-- Antes apuntaba a https://tubarberia.com (dominio inexistente)
+-- y la columna 8 (servicio_nombre) se declaraba VARCHAR pero
+-- STRING_AGG retorna TEXT → 42804. Cambio a TEXT.
+-- DROP previo porque cambiar tipo de retorno con OR REPLACE falla.
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION generar_token_confirmacion(p_id_cita UUID)
+DROP FUNCTION IF EXISTS generar_token_confirmacion(UUID);
+
+CREATE FUNCTION generar_token_confirmacion(p_id_cita UUID)
 RETURNS TABLE (
   token VARCHAR,
   url_confirmacion TEXT,
@@ -32,7 +36,7 @@ RETURNS TABLE (
   fecha_cita TIMESTAMPTZ,
   hora_cita TIME,
   barbero_nombre VARCHAR,
-  servicio_nombre VARCHAR
+  servicio_nombre TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
