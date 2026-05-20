@@ -73,3 +73,30 @@ $$;
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "token_anon_select" ON token_confirmacion_cita;
 REVOKE SELECT ON token_confirmacion_cita FROM anon;
+
+
+-- ------------------------------------------------------------
+-- FIX 4 — RPC para buscar cliente por email (multi-servicio wizard)
+-- El wizard necesita saber si un email ya pertenece a un cliente
+-- REGISTRADO (con Auth) antes de crear un duplicado anonimo.
+-- Anon no tiene SELECT directo sobre cliente (RLS), por eso va
+-- como SECURITY DEFINER que devuelve lo minimo necesario.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION buscar_cliente_por_email(p_email VARCHAR)
+RETURNS TABLE (
+  id_cliente   UUID,
+  auth_user_id UUID,
+  tipo         tipo_cliente
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT c.id_cliente, c.auth_user_id, c.tipo
+  FROM cliente c
+  WHERE LOWER(c.email) = LOWER(TRIM(p_email));
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION buscar_cliente_por_email(VARCHAR) TO anon, authenticated;

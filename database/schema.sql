@@ -3468,3 +3468,31 @@ SELECT 'Columna confirmado agregada a cita' AS resultado;
 SELECT 'Función generar_token_confirmacion creada' AS resultado;
 SELECT 'Función confirmar_cita_por_token creada' AS resultado;
 SELECT 'Función cancelar_tokens_expirados creada' AS resultado;
+
+
+-- ############################################################
+-- ## MODULO 19 — RPC buscar_cliente_por_email (wizard multi-servicio)
+-- ############################################################
+-- El wizard de agendado anonimo necesita verificar si un email ya
+-- pertenece a un cliente registrado (con Auth) antes de crear un
+-- duplicado. Anon no tiene SELECT sobre cliente (RLS), asi que va
+-- como SECURITY DEFINER y solo devuelve los campos minimos.
+
+CREATE OR REPLACE FUNCTION buscar_cliente_por_email(p_email VARCHAR)
+RETURNS TABLE (
+  id_cliente   UUID,
+  auth_user_id UUID,
+  tipo         tipo_cliente
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT c.id_cliente, c.auth_user_id, c.tipo
+  FROM cliente c
+  WHERE LOWER(c.email) = LOWER(TRIM(p_email));
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION buscar_cliente_por_email(VARCHAR) TO anon, authenticated;

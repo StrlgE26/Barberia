@@ -29,13 +29,18 @@
         <span></span>
       </button>
 
-      <ul class="nav__menu" id="navMenu" role="list">
-        <li><a href="#servicios" class="nav__link">Servicios</a></li>
-        <li><a href="#equipo"    class="nav__link">Equipo</a></li>
-        <li><a href="#ubicacion" class="nav__link">Ubicación</a></li>
+      <!-- Drawer: en desktop es transparente (display:contents) y sus hijos
+           (menu + actions) participan directo en la grilla del container.
+           En mobile se convierte en panel off-canvas. -->
+      <div class="nav__drawer" id="navMenu">
 
-        <!-- Auth — separado con margin-left:auto -->
-        <li class="nav__auth-item">
+        <ul class="nav__menu" role="list">
+          <li><a href="#servicios" class="nav__link">Servicios</a></li>
+          <li><a href="#equipo"    class="nav__link">Equipo</a></li>
+          <li><a href="#ubicacion" class="nav__link">Ubicación</a></li>
+        </ul>
+
+        <div class="nav__actions">
           <button class="nav__auth-btn js-open-auth" id="navAcceder">Acceder</button>
           <div class="nav__cuenta" id="navCuenta" hidden>
             <button class="nav__cuenta-trigger" id="navCuentaToggle">
@@ -54,17 +59,16 @@
               </button>
             </div>
           </div>
-        </li>
 
-        <li>
           <a href="#"
              class="btn btn--primary js-open-booking"
              id="nav-cta-btn"
              data-context="nav">
             Agendar Cita
           </a>
-        </li>
-      </ul>
+        </div>
+
+      </div>
 
     </div>
   </nav>
@@ -292,85 +296,141 @@
       <header class="modal__header">
         <p class="section-header__tag">Reserva tu lugar</p>
         <h2 class="modal__title" id="modalTitle">Agendar <em>Cita</em></h2>
+        <p class="modal__subtitle">Reserva en menos de 2 minutos.</p>
       </header>
 
-      <!-- 
-        ACTION apunta a Supabase via JS fetch().
-        NO usar <form action="..."> para Supabase — se maneja en script.js.
-        El atributo data-supabase-table indica la tabla destino.
-      -->
-      <form class="modal__form" id="bookingForm" novalidate>
+      <!-- Indicador de pasos -->
+      <ol class="wizard-steps" id="wizardSteps" aria-label="Progreso de reserva">
+        <li class="wizard-step is-active" data-step="1">
+          <span class="wizard-step__circle" aria-hidden="true">1</span>
+          <span class="wizard-step__label">Sucursal y servicios</span>
+        </li>
+        <li class="wizard-step__connector" aria-hidden="true"></li>
+        <li class="wizard-step" data-step="2">
+          <span class="wizard-step__circle" aria-hidden="true">2</span>
+          <span class="wizard-step__label">Barbero y horario</span>
+        </li>
+        <li class="wizard-step__connector" aria-hidden="true"></li>
+        <li class="wizard-step" data-step="3">
+          <span class="wizard-step__circle" aria-hidden="true">3</span>
+          <span class="wizard-step__label">Tus datos</span>
+        </li>
+      </ol>
 
-        <!-- Paso 1: Datos del cliente -->
-        <div class="form-group">
-          <label class="form-label" for="fieldName">Nombre completo</label>
-          <input class="form-input" type="text" id="fieldName" name="nombre"
-                 placeholder="Tu nombre" required autocomplete="name"/>
+      <form class="modal__form wizard-form" id="bookingForm" novalidate>
+
+        <!-- ====== STEP 1: Sucursal + Servicios ====== -->
+        <section class="wizard-panel is-active" data-panel="1" aria-labelledby="wp1-title">
+          <h3 class="wizard-panel__title" id="wp1-title">Sucursal y servicios</h3>
+
+          <div class="form-group">
+            <label class="form-label" for="fieldSucursal">Sucursal</label>
+            <select class="form-input form-select" id="fieldSucursal" required>
+              <option value="">Selecciona una sucursal…</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Servicios <span class="form-label__hint">(puedes elegir varios)</span></label>
+            <div class="service-cards-grid" id="serviceCardsGrid" role="group" aria-label="Servicios disponibles">
+              <!-- cards renderizadas por JS -->
+            </div>
+            <p class="wizard-summary-line" id="step1Total" hidden></p>
+          </div>
+        </section>
+
+        <!-- ====== STEP 2: Barbero + Fecha + Slot ====== -->
+        <section class="wizard-panel" data-panel="2" aria-labelledby="wp2-title" hidden>
+          <h3 class="wizard-panel__title" id="wp2-title">Barbero y horario</h3>
+
+          <div class="form-group">
+            <label class="form-label" for="fieldBarber">Barbero</label>
+            <select class="form-input form-select" id="fieldBarber" required>
+              <option value="">Selecciona un barbero…</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="fieldDate">Fecha</label>
+            <input class="form-input" type="date" id="fieldDate" required/>
+          </div>
+
+          <div class="form-group is-hidden" id="slotsContainer">
+            <label class="form-label">Hora de inicio</label>
+            <div class="slot-pill-grid" id="slotPillGrid" role="radiogroup" aria-label="Horarios disponibles">
+              <!-- pills renderizadas por JS -->
+            </div>
+            <p class="wizard-empty-slots is-hidden" id="slotsEmpty">Sin horarios disponibles ese día.</p>
+          </div>
+        </section>
+
+        <!-- ====== STEP 3: Datos del cliente + Resumen ====== -->
+        <section class="wizard-panel" data-panel="3" aria-labelledby="wp3-title" hidden>
+          <h3 class="wizard-panel__title" id="wp3-title">Tus datos</h3>
+
+          <!-- Resumen de la reserva -->
+          <div class="summary-card" id="summaryCard">
+            <!-- renderizado por JS -->
+          </div>
+
+          <!-- Banner cliente logueado (oculto por defecto) -->
+          <div class="wizard-logged-banner is-hidden" id="loggedBanner">
+            <p>Reservando con la cuenta de <strong id="loggedName"></strong></p>
+            <a href="#" id="editarPerfilLink">Editar perfil</a>
+          </div>
+
+          <!-- Aviso de email asociado a cuenta existente -->
+          <div class="wizard-alert is-hidden" id="emailAuthAlert" role="alert">
+            <p>Este email ya tiene una cuenta. <a href="#" id="emailAuthLogin">Inicia sesión</a> para asociar esta reserva a tu historial, o usa otro email.</p>
+          </div>
+
+          <!-- Form de datos (oculto si está logueado) -->
+          <div id="guestFields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldName">Nombre</label>
+                <input class="form-input" type="text" id="fieldName" name="nombre" placeholder="Tu nombre" required autocomplete="given-name"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldApellidos">Apellidos</label>
+                <input class="form-input" type="text" id="fieldApellidos" name="apellidos" placeholder="Tus apellidos" required autocomplete="family-name"/>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fieldPhone">WhatsApp / teléfono</label>
+              <input class="form-input" type="tel" id="fieldPhone" name="telefono" placeholder="55 1234 5678" required autocomplete="tel"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fieldEmail">Email</label>
+              <input class="form-input" type="email" id="fieldEmail" name="email" placeholder="tu@email.com" required autocomplete="email"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fieldNotas">Notas <span class="form-label__hint">(opcional)</span></label>
+              <input class="form-input" type="text" id="fieldNotas" name="notas" placeholder="Alguna indicación especial…"/>
+            </div>
+          </div>
+
+          <p class="modal__disclaimer">
+            Al agendar aceptas que te contactemos para confirmar tu cita.
+            Tu información no será compartida con terceros.
+          </p>
+        </section>
+
+        <!-- Footer del wizard: navegación entre pasos -->
+        <div class="wizard-footer">
+          <button type="button" class="btn btn--ghost" id="wizardPrev" hidden>
+            ‹ Volver
+          </button>
+          <button type="button" class="btn btn--primary wizard-footer__main" id="wizardNext">
+            Siguiente ›
+          </button>
+          <button type="submit" class="btn btn--primary wizard-footer__main" id="submitBookingBtn" hidden>
+            Confirmar Reserva
+          </button>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="fieldPhone">WhatsApp o teléfono</label>
-          <input class="form-input" type="tel" id="fieldPhone" name="telefono"
-                 placeholder="55 1234 5678" required autocomplete="tel"/>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="fieldEmail">
-            Email <span style="font-weight:400;opacity:0.5">(opcional)</span>
-          </label>
-          <input class="form-input" type="email" id="fieldEmail" name="email"
-                 placeholder="para confirmación por correo" autocomplete="email"/>
-        </div>
-
-        <!-- Paso 2: Servicio -->
-        <div class="form-group">
-          <label class="form-label" for="fieldService">Servicio</label>
-          <select class="form-input form-select" id="fieldService" name="servicio_id" required>
-            <option value="">Selecciona un servicio…</option>
-            <!-- Poblado dinámicamente desde Supabase -->
-          </select>
-        </div>
-
-        <!-- Paso 3: Barbero -->
-        <div class="form-group">
-          <label class="form-label" for="fieldBarber">Barbero</label>
-          <select class="form-input form-select" id="fieldBarber" name="barbero_id" required>
-            <option value="">Selecciona un barbero…</option>
-            <!-- Poblado dinámicamente desde Supabase -->
-          </select>
-        </div>
-
-        <!-- Paso 4: Fecha -->
-        <div class="form-group">
-          <label class="form-label" for="fieldDate">Fecha</label>
-          <input class="form-input" type="date" id="fieldDate" name="fecha" required/>
-        </div>
-
-        <!-- Paso 5: Slot de horario — aparece cuando hay barbero + fecha -->
-        <div class="form-group is-hidden" id="slotsContainer">
-          <label class="form-label" for="fieldSlot">Horario disponible</label>
-          <select class="form-input form-select" id="fieldSlot" name="slot" required disabled>
-            <option value="">Primero selecciona barbero y fecha</option>
-          </select>
-        </div>
-
-        <!-- Notas opcionales -->
-        <div class="form-group">
-          <label class="form-label" for="fieldNotas">
-            Notas <span style="font-weight:400;opacity:0.5">(opcional)</span>
-          </label>
-          <input class="form-input" type="text" id="fieldNotas" name="notas"
-                 placeholder="Alguna indicación especial…"/>
-        </div>
-
-        <button type="submit" class="btn btn--primary btn--full" id="submitBookingBtn">
-          Confirmar Cita
-        </button>
-
-        <p class="modal__disclaimer">
-          Al agendar aceptas que te contactemos para confirmar tu cita.
-          Tu información no será compartida con terceros.
-        </p>
 
       </form>
     </div>

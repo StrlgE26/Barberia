@@ -307,69 +307,6 @@ function initCarousel() {
    5. CARGA DINÁMICA DE SERVICIOS
    Reemplaza las tarjetas hardcodeadas con datos reales de Supabase
    ============================================================ */
-/* ============================================================
-   POBLAR SELECTS DEL MODAL
-   Se ejecuta al abrir el modal por primera vez
-   ============================================================ */
-let selectsPoblados = false;
-
-async function poblarSelectsModal() {
-  if (selectsPoblados) return;
-
-  const selectServicio = document.getElementById('fieldService');
-  const selectBarbero  = document.getElementById('fieldBarber');
-
-  // Cargar servicios y barberos en paralelo
-  const [resServicios, resBarberos] = await Promise.allSettled([
-    selectServicio
-      ? db.get('servicio', 'id_servicio,nombre,duracion_min,precio', { activo: 'true' })
-      : Promise.resolve([]),
-    selectBarbero
-      ? db.get('empleado', 'id_empleado,nombre,apellidos,estado_actual',
-               { activo: 'true', rol: 'barbero', id_sucursal: ID_SUCURSAL })
-      : Promise.resolve([]),
-  ]);
-
-  if (resServicios.status === 'fulfilled' && selectServicio) {
-    const servicios = resServicios.value;
-    selectServicio.innerHTML =
-      '<option value="">Selecciona un servicio…</option>' +
-      servicios.map(s =>
-        `<option value="${s.id_servicio}"
-                 data-duracion="${s.duracion_min}"
-                 data-precio="${s.precio}">
-           ${escapeHtml(s.nombre)} — $${formatPrecio(s.precio)}
-         </option>`
-      ).join('');
-    if (servicios.length === 0) {
-      selectServicio.innerHTML = '<option value="">Sin servicios disponibles</option>';
-    }
-  } else if (resServicios.status === 'rejected') {
-    console.error('Error cargando servicios:', resServicios.reason);
-    if (selectServicio) selectServicio.innerHTML = '<option value="">Error al cargar servicios</option>';
-  }
-
-  if (resBarberos.status === 'fulfilled' && selectBarbero) {
-    const barberos = resBarberos.value;
-    selectBarbero.innerHTML =
-      '<option value="">Selecciona un barbero…</option>' +
-      barberos.map(b =>
-        `<option value="${b.id_empleado}"
-                 ${b.estado_actual === 'ausente' ? 'disabled' : ''}>
-           ${escapeHtml(b.nombre)} ${escapeHtml(b.apellidos || '')}
-           ${b.estado_actual === 'ausente' ? '— No disponible' : ''}
-         </option>`
-      ).join('');
-  } else if (resBarberos.status === 'rejected') {
-    console.error('Error cargando barberos:', resBarberos.reason);
-  }
-
-  // Marcar como poblado solo si ambas cargas tuvieron éxito
-  if (resServicios.status === 'fulfilled' && resBarberos.status === 'fulfilled') {
-    selectsPoblados = true;
-  }
-}
-
 async function cargarServicios() {
   const grid = document.getElementById('serviciosGrid');
   if (!grid) return;
@@ -539,175 +476,411 @@ async function cargarBarberos() {
 /* ============================================================
    7. MODAL + FLUJO COMPLETO DE AGENDADO
    ============================================================ */
-(function initModal() {
+(function initWizardModal() {
   const modal    = document.getElementById('bookingModal');
   const backdrop = document.getElementById('modalBackdrop');
   const closeBtn = document.getElementById('modalClose');
   const form     = document.getElementById('bookingForm');
+  if (!modal || !form) return;
 
-  if (!modal) return;
+  /* ---------- Refs DOM ---------- */
+  const selectSucursal = document.getElementById('fieldSucursal');
+  const cardsGrid      = document.getElementById('serviceCardsGrid');
+  const step1Total     = document.getElementById('step1Total');
+  const selectBarbero  = document.getElementById('fieldBarber');
+  const fieldFecha     = document.getElementById('fieldDate');
+  const slotsContainer = document.getElementById('slotsContainer');
+  const slotGrid       = document.getElementById('slotPillGrid');
+  const slotsEmpty     = document.getElementById('slotsEmpty');
+  const summaryCard    = document.getElementById('summaryCard');
+  const loggedBanner   = document.getElementById('loggedBanner');
+  const loggedName     = document.getElementById('loggedName');
+  const emailAuthAlert = document.getElementById('emailAuthAlert');
+  const emailAuthLogin = document.getElementById('emailAuthLogin');
+  const guestFields    = document.getElementById('guestFields');
+  const fName          = document.getElementById('fieldName');
+  const fApellidos     = document.getElementById('fieldApellidos');
+  const fPhone         = document.getElementById('fieldPhone');
+  const fEmail         = document.getElementById('fieldEmail');
+  const fNotas         = document.getElementById('fieldNotas');
+  const prevBtn        = document.getElementById('wizardPrev');
+  const nextBtn        = document.getElementById('wizardNext');
+  const submitBtn      = document.getElementById('submitBookingBtn');
+  const stepIndicators = modal.querySelectorAll('.wizard-step[data-step]');
+  const panels         = modal.querySelectorAll('.wizard-panel[data-panel]');
 
-  /* Estado interno del flujo de reserva */
-  const estado = {
-    servicioId:       null,
-    servicioNombre:   null,
-    servicioDuracion: null,
-    servicioPrecio:   null,
-    barberoId:        null,
-    barberoNombre:    null,
-    slotInicio:       null,
-    slotFin:          null,
+  /* ---------- Estado del wizard ---------- */
+  const wizard = {
+    paso: 1,
+    sucursalId: null,
+    servicios: [],           // [{id, nombre, precio, duracion}]
+    barberoId: null,
+    barberoNombre: null,
+    slotInicio: null,
+    slotFin: null,
+    clienteLogueado: null,   // row de cliente si hay sesión Auth activa
+    _preBarber: null,        // pre-selección via data-barber-id en trigger
   };
 
-  const selectServicio  = document.getElementById('fieldService');
-  const selectBarbero   = document.getElementById('fieldBarber');
-  const fieldFecha      = document.getElementById('fieldDate');
-  const contenedorSlots = document.getElementById('slotsContainer');
-  const selectSlot      = document.getElementById('fieldSlot');
-  const fieldTelefono   = form?.telefono;
+  let sucursalesCargadas = false;
+  let serviciosCache     = [];
 
-  /* --- Validación de teléfono en tiempo real --- */
-  if (fieldTelefono) {
-    fieldTelefono.addEventListener('input', () => {
-      const validacion = validarTelefonoFrontend(fieldTelefono.value);
-      if (validacion.valido) {
-        fieldTelefono.classList.remove('form-input--error');
-        fieldTelefono.title = '';
-      } else {
-        fieldTelefono.classList.add('form-input--error');
-        fieldTelefono.title = validacion.error;
-      }
-    });
+  const sumDuracion = () => wizard.servicios.reduce((s, x) => s + x.duracion, 0);
+  const sumPrecio   = () => wizard.servicios.reduce((s, x) => s + x.precio,   0);
 
-    fieldTelefono.addEventListener('blur', () => {
-      const validacion = validarTelefonoFrontend(fieldTelefono.value);
-      if (!validacion.valido && fieldTelefono.value.trim()) {
-        fieldTelefono.classList.add('form-input--error');
-      }
+  /* ---------- Navegación entre pasos ---------- */
+  function irAPaso(n) {
+    wizard.paso = n;
+    panels.forEach(p => {
+      const isActive = parseInt(p.dataset.panel) === n;
+      p.classList.toggle('is-active', isActive);
+      p.hidden = !isActive;
     });
+    stepIndicators.forEach(s => {
+      const step = parseInt(s.dataset.step);
+      s.classList.toggle('is-active', step === n);
+      s.classList.toggle('is-done',   step < n);
+    });
+    prevBtn.hidden   = n === 1;
+    nextBtn.hidden   = n === 3;
+    submitBtn.hidden = n !== 3;
+    if (n === 3) renderResumen();
   }
 
-  /* --- Paso 1: cambio de servicio → resetear lo que sigue --- */
-  if (selectServicio) {
-    selectServicio.addEventListener('change', () => {
-      const opt = selectServicio.options[selectServicio.selectedIndex];
-      estado.servicioId       = opt.value || null;
-      estado.servicioDuracion = parseInt(opt.dataset.duracion) || 30;
-      estado.servicioPrecio   = parseFloat(opt.dataset.precio)  || 0;
-      estado.servicioNombre   = opt.text.split(' —')[0];
-
-      // Resetear pasos dependientes
-      estado.barberoId  = null;
-      estado.slotInicio = null;
-      if (selectBarbero)   selectBarbero.value = '';
-      if (fieldFecha)      fieldFecha.value    = '';
-      if (contenedorSlots) contenedorSlots.classList.add('is-hidden');
-    });
-  }
-
-  /* --- Paso 2: cambio de barbero o fecha → cargar slots --- */
-  async function cargarSlots() {
-    if (!estado.servicioId || !selectBarbero?.value || !fieldFecha?.value) return;
-
-    estado.barberoId    = selectBarbero.value;
-    estado.barberoNombre = selectBarbero.options[selectBarbero.selectedIndex]?.text || '';
-
-    if (contenedorSlots) contenedorSlots.classList.remove('is-hidden');
-
-    if (selectSlot) {
-      selectSlot.innerHTML = '<option value="">Cargando horarios…</option>';
-      selectSlot.disabled  = true;
-    }
-
+  /* ---------- Cargar sucursales (Step 1) ---------- */
+  async function cargarSucursales() {
+    if (sucursalesCargadas) return;
     try {
-      const slots = await db.rpc('obtener_slots_disponibles', {
-        p_id_empleado:  estado.barberoId,
-        p_fecha:        fieldFecha.value,
-        p_duracion_min: estado.servicioDuracion,
+      const sucs = await db.get('sucursal', 'id_sucursal,nombre,direccion', { activa: 'true' });
+      selectSucursal.innerHTML = '<option value="">Selecciona una sucursal…</option>' +
+        sucs.map(s => `<option value="${s.id_sucursal}">${escapeHtml(s.nombre)}</option>`).join('');
+      sucursalesCargadas = true;
+      // Auto-seleccionar si solo hay una sucursal activa
+      if (sucs.length === 1) {
+        selectSucursal.value = sucs[0].id_sucursal;
+        wizard.sucursalId    = sucs[0].id_sucursal;
+      }
+    } catch (err) {
+      console.error('Error cargando sucursales:', err);
+      selectSucursal.innerHTML = '<option value="">Error al cargar sucursales</option>';
+    }
+  }
+
+  selectSucursal.addEventListener('change', () => {
+    wizard.sucursalId = selectSucursal.value || null;
+    // Reset Step 2 (barbero pertenece a una sucursal)
+    wizard.barberoId  = null;
+    wizard.slotInicio = null;
+    wizard.slotFin    = null;
+    selectBarbero.value = '';
+    if (fieldFecha) fieldFecha.value = '';
+    slotsContainer.classList.add('is-hidden');
+  });
+
+  /* ---------- Cargar y renderizar servicios (Step 1) ---------- */
+  async function asegurarServicios() {
+    if (serviciosCache.length) return;
+    serviciosCache = await db.get('servicio',
+      'id_servicio,nombre,duracion_min,precio,categoria',
+      { activo: 'true' });
+  }
+
+  function renderServiceCards() {
+    cardsGrid.innerHTML = serviciosCache.map(s => `
+      <button type="button" class="service-card" role="checkbox" aria-checked="false"
+              data-id="${s.id_servicio}"
+              data-duracion="${s.duracion_min}"
+              data-precio="${s.precio}">
+        <span class="service-card__nombre">${escapeHtml(s.nombre)}</span>
+        <span class="service-card__meta">$${formatPrecio(s.precio)} · ${s.duracion_min}min</span>
+      </button>
+    `).join('');
+    cardsGrid.querySelectorAll('.service-card').forEach(btn => {
+      btn.addEventListener('click', () => toggleServiceCard(btn));
+    });
+    actualizarStep1Total();
+  }
+
+  function toggleServiceCard(btn) {
+    const id = btn.dataset.id;
+    const idx = wizard.servicios.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      wizard.servicios.splice(idx, 1);
+      btn.classList.remove('is-selected');
+      btn.setAttribute('aria-checked', 'false');
+    } else {
+      wizard.servicios.push({
+        id,
+        nombre:   btn.querySelector('.service-card__nombre').textContent,
+        precio:   parseFloat(btn.dataset.precio),
+        duracion: parseInt(btn.dataset.duracion),
       });
+      btn.classList.add('is-selected');
+      btn.setAttribute('aria-checked', 'true');
+    }
+    // Cambiar servicios invalida los slots ya elegidos
+    wizard.slotInicio = null; wizard.slotFin = null;
+    slotsContainer.classList.add('is-hidden');
+    actualizarStep1Total();
+  }
 
-      const disponibles = slots.filter(s => s.disponible);
+  function actualizarStep1Total() {
+    if (!wizard.servicios.length) { step1Total.hidden = true; return; }
+    step1Total.hidden = false;
+    const n = wizard.servicios.length;
+    step1Total.textContent =
+      `${n} servicio${n > 1 ? 's' : ''} · ${sumDuracion()}min · $${formatPrecio(sumPrecio())}`;
+  }
 
-      if (disponibles.length === 0) {
-        if (selectSlot) {
-          selectSlot.innerHTML = '<option value="">Sin horarios disponibles ese día</option>';
-          selectSlot.disabled  = true;
-        }
+  /* ---------- Cargar barberos por sucursal (Step 2) ---------- */
+  async function cargarBarberosPorSucursal() {
+    if (!wizard.sucursalId) {
+      selectBarbero.innerHTML = '<option value="">Primero elige una sucursal</option>';
+      return;
+    }
+    selectBarbero.innerHTML = '<option value="">Cargando…</option>';
+    try {
+      const barbs = await db.get('empleado',
+        'id_empleado,nombre,apellidos,estado_actual,especialidad',
+        { activo: 'true', rol: 'barbero', id_sucursal: wizard.sucursalId });
+      if (!barbs.length) {
+        selectBarbero.innerHTML = '<option value="">Sin barberos en esta sucursal</option>';
         return;
       }
+      selectBarbero.innerHTML = '<option value="">Selecciona un barbero…</option>' +
+        barbs.map(b => {
+          const fullName = `${b.nombre || ''} ${b.apellidos || ''}`.trim();
+          const label    = b.especialidad ? `${fullName} — ${b.especialidad}` : fullName;
+          return `
+            <option value="${b.id_empleado}"
+                    data-nombre="${escapeHtml(fullName)}"
+                    ${b.estado_actual === 'ausente' ? 'disabled' : ''}>
+              ${escapeHtml(label)}
+            </option>`;
+        }).join('');
 
-      if (selectSlot) {
-        selectSlot.innerHTML =
-          '<option value="">Selecciona un horario…</option>' +
-          disponibles.map(s => `
-            <option value="${s.slot_inicio}" data-fin="${s.slot_fin}">
-              ${formatHora(s.slot_inicio)} – ${formatHora(s.slot_fin)}
-            </option>
-          `).join('');
-        selectSlot.disabled = false;
+      // Aplicar pre-selección si vino desde un trigger con data-barber-id
+      if (wizard._preBarber) {
+        selectBarbero.value = wizard._preBarber;
+        wizard._preBarber   = null;
+        selectBarbero.dispatchEvent(new Event('change'));
       }
-
     } catch (err) {
-      console.error('Error cargando slots:', err);
-      if (selectSlot) {
-        selectSlot.innerHTML = '<option value="">Error al cargar horarios</option>';
-        selectSlot.disabled  = true;
-      }
+      console.error('Error cargando barberos:', err);
+      selectBarbero.innerHTML = '<option value="">Error al cargar barberos</option>';
     }
   }
 
-  if (selectBarbero) selectBarbero.addEventListener('change', cargarSlots);
-  if (fieldFecha)    fieldFecha.addEventListener('change', cargarSlots);
+  selectBarbero.addEventListener('change', () => {
+    wizard.barberoId    = selectBarbero.value || null;
+    const opt           = selectBarbero.options[selectBarbero.selectedIndex];
+    wizard.barberoNombre = opt?.dataset?.nombre || opt?.text || '';
+    wizard.slotInicio = null; wizard.slotFin = null;
+    cargarSlots();
+  });
+  fieldFecha.addEventListener('change', () => {
+    wizard.slotInicio = null; wizard.slotFin = null;
+    cargarSlots();
+  });
 
-  /* --- Paso 3: selección de slot → guardar en estado --- */
-  if (selectSlot) {
-    selectSlot.addEventListener('change', () => {
-      const opt = selectSlot.options[selectSlot.selectedIndex];
-      estado.slotInicio = opt.value          || null;
-      estado.slotFin    = opt.dataset.fin    || null;
+  /* ---------- Slots (Step 2) ---------- */
+  async function cargarSlots() {
+    if (!wizard.barberoId || !fieldFecha.value || !wizard.servicios.length) {
+      slotsContainer.classList.add('is-hidden');
+      return;
+    }
+    slotsContainer.classList.remove('is-hidden');
+    slotsEmpty.classList.add('is-hidden');
+    slotGrid.innerHTML = '<p class="wizard-empty-slots">Cargando…</p>';
+    try {
+      const slots = await db.rpc('obtener_slots_disponibles', {
+        p_id_empleado:  wizard.barberoId,
+        p_fecha:        fieldFecha.value,
+        p_duracion_min: sumDuracion(),
+      });
+      const dispo = slots.filter(s => s.disponible);
+      if (!dispo.length) {
+        slotGrid.innerHTML = '';
+        slotsEmpty.classList.remove('is-hidden');
+        return;
+      }
+      slotGrid.innerHTML = dispo.map(s => `
+        <button type="button" class="slot-pill" role="radio" aria-checked="false"
+                data-inicio="${s.slot_inicio}" data-fin="${s.slot_fin}">
+          ${formatHora(s.slot_inicio)}
+        </button>
+      `).join('');
+      slotGrid.querySelectorAll('.slot-pill').forEach(b => {
+        b.addEventListener('click', () => seleccionarSlot(b));
+      });
+    } catch (err) {
+      console.error('Error cargando slots:', err);
+      slotGrid.innerHTML = '<p class="wizard-empty-slots">Error al cargar horarios.</p>';
+    }
+  }
+
+  function seleccionarSlot(btn) {
+    slotGrid.querySelectorAll('.slot-pill').forEach(b => {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-checked', 'false');
+    });
+    btn.classList.add('is-selected');
+    btn.setAttribute('aria-checked', 'true');
+    wizard.slotInicio = btn.dataset.inicio;
+    wizard.slotFin    = btn.dataset.fin;
+  }
+
+  /* ---------- Validación por paso ---------- */
+  function validarPaso(n) {
+    if (n === 1) {
+      if (!wizard.sucursalId)         return 'Selecciona una sucursal.';
+      if (!wizard.servicios.length)   return 'Selecciona al menos un servicio.';
+    }
+    if (n === 2) {
+      if (!wizard.barberoId)          return 'Selecciona un barbero.';
+      if (!fieldFecha.value)          return 'Selecciona una fecha.';
+      if (!wizard.slotInicio)         return 'Selecciona un horario disponible.';
+    }
+    return null;
+  }
+
+  prevBtn.addEventListener('click', () => irAPaso(Math.max(1, wizard.paso - 1)));
+  nextBtn.addEventListener('click', async () => {
+    const err = validarPaso(wizard.paso);
+    if (err) { showToast(err, 'error'); return; }
+    if (wizard.paso === 1) {
+      await cargarBarberosPorSucursal();
+    }
+    irAPaso(wizard.paso + 1);
+  });
+
+  /* ---------- Resumen del Step 3 ---------- */
+  function renderResumen() {
+    const servs = wizard.servicios
+      .map(s => `<li>${escapeHtml(s.nombre)} <span style="color:var(--clr-white-40)">— $${formatPrecio(s.precio)} · ${s.duracion}min</span></li>`)
+      .join('');
+    const fecha = wizard.slotInicio ? wizard.slotInicio.split('T')[0] : '';
+    const ini   = wizard.slotInicio ? formatHora(wizard.slotInicio) : '';
+    const fin   = wizard.slotFin    ? formatHora(wizard.slotFin)    : '';
+
+    summaryCard.innerHTML = `
+      <div class="summary-card__row"><span>Barbero:</span> <strong>${escapeHtml(wizard.barberoNombre)}</strong></div>
+      <div class="summary-card__row"><span>Servicios:</span></div>
+      <ul style="margin:0 0 0 1.1rem; padding:0; font-size:0.85rem; line-height:1.6;">${servs}</ul>
+      <div class="summary-card__row"><span>Horario:</span> <strong>${fecha} · ${ini} – ${fin}</strong></div>
+      <div class="summary-card__total">Total: <strong>$${formatPrecio(sumPrecio())}</strong></div>
+    `;
+    aplicarSesionCliente();
+  }
+
+  /* ---------- Cliente logueado: detectar y auto-fill ---------- */
+  async function detectarSesionCliente() {
+    wizard.clienteLogueado = null;
+    const tok = localStorage.getItem('sb_cli_token');
+    const usrRaw = localStorage.getItem('sb_cli_user');
+    if (!tok || !usrRaw) return;
+    let usr;
+    try { usr = JSON.parse(usrRaw); } catch { return; }
+    if (!usr?.id) return;
+    try {
+      // Pasamos el token del cliente para que RLS (cliente_propio_perfil)
+      // permita leer su propio row.
+      const rows = await db.get('cliente',
+        'id_cliente,nombre,apellido,telefono,email,tipo,auth_user_id',
+        { auth_user_id: usr.id },
+        tok);
+      if (rows.length) wizard.clienteLogueado = rows[0];
+    } catch (err) {
+      console.warn('No se pudo leer cliente logueado:', err);
+    }
+  }
+
+  function aplicarSesionCliente() {
+    const logged = wizard.clienteLogueado;
+    if (logged) {
+      loggedBanner.classList.remove('is-hidden');
+      loggedName.textContent =
+        (logged.nombre || '') + (logged.apellido ? ' ' + logged.apellido : '');
+      guestFields.style.display = 'none';
+      fName.value      = logged.nombre   || '';
+      fApellidos.value = logged.apellido || '';
+      fPhone.value     = logged.telefono || '';
+      fEmail.value     = logged.email    || '';
+    } else {
+      loggedBanner.classList.add('is-hidden');
+      guestFields.style.display = '';
+    }
+  }
+
+  // Click en "Inicia sesión" del alert de email-con-Auth
+  if (emailAuthLogin) {
+    emailAuthLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window._openAuthModal === 'function') {
+        window._openAuthModal('login');
+      }
     });
   }
 
-  /* --- Abrir modal --- */
+  /* ---------- Validación de teléfono en tiempo real ---------- */
+  fPhone.addEventListener('input', () => {
+    const v = validarTelefonoFrontend(fPhone.value);
+    fPhone.classList.toggle('form-input--error', !v.valido && fPhone.value.trim().length > 0);
+    fPhone.title = v.valido ? '' : v.error;
+  });
+
+  /* ---------- Abrir / cerrar modal ---------- */
   async function openModal(triggerEl) {
-    // Poblar selects la primera vez que se abre
-    await poblarSelectsModal();
+    await Promise.all([cargarSucursales(), asegurarServicios()]);
+    renderServiceCards();
 
+    // Pre-selección desde triggers de la página
     if (triggerEl) {
-      const serviceId  = triggerEl.dataset.serviceId       || null;
-      const barberId   = triggerEl.dataset.barberId        || null;
-      const duracion   = triggerEl.dataset.serviceDuration || null;
-      const precio     = triggerEl.dataset.servicePrice    || null;
-
-      if (serviceId && selectServicio) {
-        selectServicio.value = serviceId;
-        selectServicio.dispatchEvent(new Event('change'));
+      const serviceId = triggerEl.dataset.serviceId || null;
+      const barberId  = triggerEl.dataset.barberId  || null;
+      if (serviceId) {
+        const card = cardsGrid.querySelector(`.service-card[data-id="${serviceId}"]`);
+        if (card && !card.classList.contains('is-selected')) toggleServiceCard(card);
       }
-      if (barberId && selectBarbero) {
-        // Esperar a que el select esté poblado antes de seleccionar
-        selectBarbero.value = barberId;
-      }
-      if (duracion) estado.servicioDuracion = parseInt(duracion);
-      if (precio)   estado.servicioPrecio   = parseFloat(precio);
+      if (barberId) wizard._preBarber = barberId;
     }
+
+    await detectarSesionCliente();
+
+    irAPaso(1);
 
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-
-    setTimeout(() => {
-      const first = modal.querySelector('input:not([type="hidden"])');
-      if (first) first.focus();
-    }, 320);
   }
 
   function closeModal() {
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    resetWizard();
   }
 
-  // Exponer globalmente para que registrarTriggers() los use
+  function resetWizard() {
+    wizard.paso = 1;
+    wizard.sucursalId = null;
+    wizard.servicios = [];
+    wizard.barberoId = null;
+    wizard.barberoNombre = null;
+    wizard.slotInicio = null;
+    wizard.slotFin = null;
+    wizard._preBarber = null;
+    selectSucursal.value = '';
+    selectBarbero.value  = '';
+    if (fieldFecha) fieldFecha.value = '';
+    if (cardsGrid)  cardsGrid.innerHTML = '';
+    if (slotGrid)   slotGrid.innerHTML  = '';
+    slotsContainer.classList.add('is-hidden');
+    fName.value = fApellidos.value = fPhone.value = fEmail.value = fNotas.value = '';
+    emailAuthAlert.classList.add('is-hidden');
+    form.reset();
+  }
+
   window._openBookingModal  = openModal;
   window._closeBookingModal = closeModal;
 
@@ -717,167 +890,153 @@ async function cargarBarberos() {
     if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
   });
 
-  /* --- Submit: flujo completo de inserción --- */
-  if (!form) return;
-
+  /* ---------- Submit final (Paso 3) ---------- */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (wizard.paso !== 3) return;
 
-    if (!validarFormulario(form))    return;
-    if (!validarEstadoReserva())     return;
+    const logged = wizard.clienteLogueado;
+    const nombre   = (logged ? logged.nombre   : fName.value).trim();
+    const apellido = (logged ? logged.apellido : fApellidos.value).trim();
+    const telefono = limpiarTelefono(logged ? logged.telefono : fPhone.value);
+    const email    = (logged ? logged.email    : fEmail.value).trim().toLowerCase();
+    const notas    = fNotas.value.trim() || null;
 
-    const submitBtn = document.getElementById('submitBookingBtn');
+    // Validación de campos obligatorios
+    if (!nombre || !apellido || !telefono || !email) {
+      showToast('Completa nombre, apellidos, teléfono y email.', 'error');
+      return;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      showToast('Email inválido.', 'error');
+      fEmail.classList.add('form-input--error');
+      return;
+    }
+
     submitBtn.disabled    = true;
     submitBtn.textContent = 'Verificando…';
 
-    const nombre   = form.nombre.value.trim();
-    const telefono = limpiarTelefono(form.telefono.value);
-    const email    = form.email?.value?.trim() || null;
-    const fechaCita = estado.slotInicio.split('T')[0];
-
     try {
-      /* 0. Validar formato de teléfono (frontend first) */
-      const validacionFront = validarTelefonoFrontend(telefono);
-      if (!validacionFront.valido) {
-        showToast(validacionFront.error, 'error');
+      // 0. Teléfono (formato + backend)
+      const fv = validarTelefonoFrontend(telefono);
+      if (!fv.valido) { showToast(fv.error, 'error'); return; }
+      const vb = await db.rpc('validar_telefono', { p_telefono: telefono });
+      if (!vb[0]?.valido) {
+        showToast(vb[0]?.error || 'Teléfono inválido', 'error');
+        fPhone.classList.add('form-input--error');
         return;
       }
+      fPhone.classList.remove('form-input--error');
 
-      /* 0.5. Validar teléfono en backend (verifica test numbers, etc) */
-      submitBtn.textContent = 'Validando teléfono…';
-      const resultadoValidacion = await db.rpc('validar_telefono', {
-        p_telefono: telefono,
-      });
-
-      // RPC retorna un array con {valido, error}
-      const validacion = resultadoValidacion[0];
-      if (!validacion.valido) {
-        showToast(validacion.error || 'Teléfono inválido', 'error');
-        form.telefono.classList.add('form-input--error');
-        return;
-      }
-      form.telefono.classList.remove('form-input--error');
-
-      /* 1. Verificar bloqueo de teléfono */
+      // 1. Anti-spam (bloqueo de teléfono por día por sucursal)
       submitBtn.textContent = 'Verificando disponibilidad…';
-      const puedeReservar = await db.rpc('telefono_puede_reservar', {
+      const fechaCita = wizard.slotInicio.split('T')[0];
+      const puede = await db.rpc('telefono_puede_reservar', {
         p_telefono:    telefono,
-        p_id_sucursal: ID_SUCURSAL,
+        p_id_sucursal: wizard.sucursalId,
         p_fecha:       fechaCita,
       });
-
-      if (!puedeReservar) {
-        showToast('Este número ya tiene una cita agendada en esa fecha. Solo se permite una por día.', 'error');
+      if (!puede) {
+        showToast('Este número ya tiene una cita ese día en esta sucursal.', 'error');
         return;
       }
 
-      submitBtn.textContent = 'Agendando…';
-
-      /* 2. Doble verificación de disponibilidad del barbero */
-      const disponible = await db.rpc('barbero_disponible', {
-        p_id_empleado: estado.barberoId,
-        p_inicio:      estado.slotInicio,
-        p_fin:         estado.slotFin,
+      // 2. Doble check de disponibilidad del barbero
+      const libre = await db.rpc('barbero_disponible', {
+        p_id_empleado: wizard.barberoId,
+        p_inicio:      wizard.slotInicio,
+        p_fin:         wizard.slotFin,
       });
-
-      if (!disponible) {
-        showToast('Ese horario ya no está disponible. Por favor elige otro.', 'error');
+      if (!libre) {
+        showToast('Ese horario ya no está disponible. Elige otro.', 'error');
         await cargarSlots();
         return;
       }
 
-      /* 3. Buscar o crear cliente por teléfono */
-      const clienteId = await obtenerOCrearCliente(nombre, telefono, email);
+      // 3. Resolver id_cliente
+      submitBtn.textContent = 'Agendando…';
+      let clienteId = logged?.id_cliente || null;
 
-      /* 4. Insertar la cita en estado pendiente_confirmacion */
-      const [citaCreada] = await db.post('cita', {
-        id_sucursal:       ID_SUCURSAL,
-        id_empleado:       estado.barberoId,
-        id_cliente:        clienteId,
-        fecha_hora_inicio: estado.slotInicio,
-        fecha_hora_fin:    estado.slotFin,
-        origen:            'online',
-        estado:            'pendiente_confirmacion',
-        notas:             form.notas?.value?.trim() || null,
-      }, true);
-
-      /* 5. Insertar detalle de la cita (servicio + precio histórico) */
-      await db.post('detalle_cita', {
-        id_cita:         citaCreada.id_cita,
-        id_servicio:     estado.servicioId,
-        precio_aplicado: estado.servicioPrecio,
-        orden:           1,
-      });
-
-      /* 6. Enviar email de confirmación */
-      submitBtn.textContent = 'Enviando confirmación…';
-      const emailResponse = await fetch('/api/enviar-confirmacion-cita', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id_cita: citaCreada.id_cita,
-          email_cliente: email || telefono + '@noemail.local',
-        }),
-      });
-
-      if (!emailResponse.ok) {
-        console.warn('Email no se envió, pero la cita fue creada:', await emailResponse.text());
+      if (!clienteId) {
+        // 3.a. ¿el email pertenece a un cliente REGISTRADO (con Auth)?
+        //      Vía RPC (SECURITY DEFINER) porque anon no tiene SELECT sobre cliente.
+        const matchByEmail = await db.rpc('buscar_cliente_por_email', { p_email: email });
+        const registered = matchByEmail.find(c => c.auth_user_id);
+        if (registered) {
+          emailAuthAlert.classList.remove('is-hidden');
+          showToast('Ese email ya tiene cuenta. Inicia sesión o usa otro email.', 'error');
+          return;
+        }
+        // 3.b. lookup por teléfono → reusar id_cliente si existe
+        const matchByPhone = await db.rpc('buscar_cliente_por_telefono', { p_telefono: telefono });
+        if (matchByPhone.length) {
+          clienteId = matchByPhone[0].id_cliente;
+        } else {
+          // 3.c. Crear cliente nuevo como anónimo
+          const [nuevo] = await db.post('cliente', {
+            nombre, apellido, telefono, email, tipo: 'anonimo',
+          }, true);
+          clienteId = nuevo.id_cliente;
+        }
       }
 
-      showToast('✓ ¡Revisa tu email para confirmar la cita! Tienes 10 minutos.', 'success');
-      form.reset();
-      if (contenedorSlots) contenedorSlots.classList.add('is-hidden');
-      Object.keys(estado).forEach(k => { estado[k] = null; });
-      setTimeout(closeModal, 1800);
+      // 4. Insertar cita en estado pendiente_confirmacion
+      const [cita] = await db.post('cita', {
+        id_sucursal:       wizard.sucursalId,
+        id_empleado:       wizard.barberoId,
+        id_cliente:        clienteId,
+        fecha_hora_inicio: wizard.slotInicio,
+        fecha_hora_fin:    wizard.slotFin,
+        origen:            'online',
+        estado:            'pendiente_confirmacion',
+        notas,
+      }, true);
+
+      // 5. Insertar detalle_cita (N filas — una por servicio). Trigger recalcula fecha_hora_fin.
+      const detalles = wizard.servicios.map((s, i) => ({
+        id_cita:         cita.id_cita,
+        id_servicio:     s.id,
+        precio_aplicado: s.precio,
+        orden:           i + 1,
+      }));
+      await db.post('detalle_cita', detalles);
+
+      // 6. Disparar email de confirmación
+      submitBtn.textContent = 'Enviando confirmación…';
+      let emailOk = false;
+      try {
+        const r = await fetch('/api/enviar-confirmacion-cita', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_cita: cita.id_cita, email_cliente: email }),
+        });
+        emailOk = r.ok;
+        if (!r.ok) {
+          const txt = await r.text();
+          console.warn(`Email no enviado (HTTP ${r.status}):`, txt);
+        }
+      } catch (e) {
+        console.warn('Email: fallo de red o endpoint inalcanzable', e);
+      }
+
+      if (emailOk) {
+        showToast('✓ ¡Revisa tu email para confirmar la cita! Tienes 10 minutos.', 'success');
+      } else {
+        // No mentir al usuario: la cita quedó creada pero sin email no podrá confirmar
+        // (se autocancelará en 10 min). En dev local sin `vercel dev` esto es normal.
+        showToast('⚠ Cita creada, pero el email de confirmación no se envió. Revisa la consola.', 'error');
+      }
+      setTimeout(closeModal, 2400);
 
     } catch (err) {
       console.error('Error al agendar:', err);
       showToast(err.message || 'Error al agendar. Intenta de nuevo.', 'error');
     } finally {
       submitBtn.disabled    = false;
-      submitBtn.textContent = 'Confirmar Cita';
+      submitBtn.textContent = 'Confirmar Reserva';
     }
   });
-
-  /* --- Validaciones del formulario --- */
-  function validarEstadoReserva() {
-    if (!estado.servicioId) {
-      showToast('Por favor selecciona un servicio.', 'error');
-      return false;
-    }
-    if (!estado.barberoId) {
-      showToast('Por favor selecciona un barbero.', 'error');
-      return false;
-    }
-    if (!estado.slotInicio) {
-      showToast('Por favor selecciona un horario disponible.', 'error');
-      return false;
-    }
-    return true;
-  }
 })();
-
-/* ============================================================
-   HELPER: buscar cliente por teléfono o crear uno nuevo
-   Los clientes anónimos se identifican por teléfono.
-   Reutilizar si ya existe mantiene el historial del cliente.
-   ============================================================ */
-async function obtenerOCrearCliente(nombre, telefono, email) {
-  const existentes = await db.rpc('buscar_cliente_por_telefono', { p_telefono: telefono });
-
-  if (existentes.length > 0) {
-    return existentes[0].id_cliente;
-  }
-
-  const [nuevo] = await db.post('cliente', {
-    nombre,
-    telefono,
-    email: email || null,
-    tipo:  'anonimo',
-  }, true);
-
-  return nuevo.id_cliente;
-}
 
 /* ============================================================
    7b. AUTH LANDING — Sesión de cliente (login / registro / logout)
