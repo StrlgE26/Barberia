@@ -17,22 +17,30 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'email_cliente es requerido' });
   }
 
+  // Headers comunes para Supabase REST: requiere apikey + Authorization Bearer.
+  // Sin Authorization Supabase responde 400 Bad Request.
+  const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const sbHeaders = {
+    'apikey':        SB_KEY,
+    'Authorization': `Bearer ${SB_KEY}`,
+    'Content-Type':  'application/json',
+  };
+
   try {
     // 1. Llamar RPC para generar token y obtener datos para email
     const emailDataResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/generar_token_confirmacion`,
+      `${SB_URL}/rest/v1/rpc/generar_token_confirmacion`,
       {
         method: 'POST',
-        headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
+        headers: sbHeaders,
         body: JSON.stringify({ p_id_cita: id_cita }),
       }
     );
 
     if (!emailDataResponse.ok) {
-      throw new Error(`Supabase RPC failed: ${emailDataResponse.statusText}`);
+      const errBody = await emailDataResponse.text();
+      throw new Error(`Supabase RPC failed (${emailDataResponse.status}): ${errBody}`);
     }
 
     const emailDataRows = await emailDataResponse.json();
@@ -52,14 +60,11 @@ export default async function handler(req, res) {
     } = emailDataRows[0];
 
     // 1.5. Insertar token en BD directamente
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/token_confirmacion_cita`,
+    const tokenInsertRes = await fetch(
+      `${SB_URL}/rest/v1/token_confirmacion_cita`,
       {
         method: 'POST',
-        headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
+        headers: sbHeaders,
         body: JSON.stringify({
           id_cita: id_cita,
           token: token,
@@ -67,6 +72,11 @@ export default async function handler(req, res) {
         }),
       }
     );
+
+    if (!tokenInsertRes.ok) {
+      const errBody = await tokenInsertRes.text();
+      throw new Error(`Token insert failed (${tokenInsertRes.status}): ${errBody}`);
+    }
 
     // 2. Formatear fecha/hora para el email (zona horaria CDMX)
     const TZ = 'America/Mexico_City';
