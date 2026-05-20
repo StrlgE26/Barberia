@@ -1192,6 +1192,42 @@ const sesionCliente = {
 };
 
 /* ------------------------------------------------------------
+   Validar la sesión guardada en localStorage. Si el JWT expiró
+   o fue revocado, Supabase responde 401. En ese caso limpiamos
+   todo y refrescamos el navbar para mostrar "Acceder".
+   Esto evita que el sitio muestre datos de un usuario anterior
+   tras cerrar el navegador o quedarse con un token caducado.
+   ------------------------------------------------------------ */
+function limpiarSesionLocal() {
+  sesionCliente.token   = null;
+  sesionCliente.usuario = null;
+  sesionCliente.nombre  = null;
+  ['sb_cli_token','sb_cli_refresh','sb_cli_user','sb_cli_nombre']
+    .forEach(k => localStorage.removeItem(k));
+}
+
+(async function validarSesionAlCargar() {
+  if (!sesionCliente.token) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'apikey':        SUPABASE_KEY,
+        'Authorization': `Bearer ${sesionCliente.token}`,
+      },
+    });
+    if (!res.ok) throw new Error(`Token inválido (${res.status})`);
+    // Token OK: refrescar usuario en memoria y storage con datos canónicos
+    const user = await res.json();
+    sesionCliente.usuario = user;
+    localStorage.setItem('sb_cli_user', JSON.stringify(user));
+  } catch (err) {
+    console.warn('Sesión vieja descartada:', err.message);
+    limpiarSesionLocal();
+    if (typeof actualizarNavAuth === 'function') actualizarNavAuth();
+  }
+})();
+
+/* ------------------------------------------------------------
    Capturar retorno desde verificación de email de Supabase Auth.
    Cuando el cliente hace click en el link del correo, Supabase
    redirige al Site URL con tokens en el hash:
@@ -1240,13 +1276,24 @@ const sesionCliente = {
   const mensaje = type === 'signup'
     ? '✓ Email confirmado. Sesión iniciada.'
     : '✓ Sesión iniciada.';
-  setTimeout(() => {
+  setTimeout(async () => {
     if (typeof showToast === 'function') showToast(mensaje, 'success');
+    // Si es un signup, crear la fila `cliente` (la función es idempotente:
+    // si ya existe no duplica). Imprescindible para que /mi-cuenta funcione.
+    if (type === 'signup' && user && typeof asegurarClienteRegistrado === 'function') {
+      try { await asegurarClienteRegistrado(accessToken, user); } catch (_) {}
+    }
     if (typeof actualizarNavAuth === 'function') actualizarNavAuth();
   }, 400);
 })();
 
 async function loginCliente(email, password) {
+  // Limpiar datos del usuario anterior antes de probar credenciales nuevas.
+  // Si el lookup posterior falla por cualquier razón, NO debe quedar el
+  // nombre del usuario previo en el toast / navbar.
+  sesionCliente.nombre = null;
+  localStorage.removeItem('sb_cli_nombre');
+
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
@@ -1261,21 +1308,26 @@ async function loginCliente(email, password) {
   localStorage.setItem('sb_cli_refresh', data.refresh_token);
   localStorage.setItem('sb_cli_user',    JSON.stringify(data.user));
 
-  // Intentar obtener nombre del cliente registrado
+  // Asegurar fila en `cliente` (la crea si no existe usando user_metadata
+  // capturado en el registro). También setea sesionCliente.nombre.
   try {
-    const rows = await db.get('cliente', 'nombre', { email: data.user.email }, data.access_token);
-    if (rows.length > 0) {
-      sesionCliente.nombre = rows[0].nombre;
-      localStorage.setItem('sb_cli_nombre', rows[0].nombre);
-    }
-  } catch (_) {}
+    await asegurarClienteRegistrado(data.access_token, data.user);
+  } catch (err) {
+    console.warn('No se pudo asegurar cliente registrado tras login:', err);
+  }
 }
 
-async function registrarCliente(email, password, nombre) {
+async function registrarCliente(email, password, nombre, apellido, telefono) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method: 'POST',
     headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, data: { nombre } }),
+    body: JSON.stringify({
+      email,
+      password,
+      // user_metadata: lo lee asegurarClienteRegistrado() para crear la fila
+      // `cliente` con tipo='registrado' cuando el email se verifique.
+      data: { nombre, apellido, telefono },
+    }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error_description || data.msg || 'Error al registrar');
@@ -1288,6 +1340,88 @@ async function registrarCliente(email, password, nombre) {
     localStorage.setItem('sb_cli_refresh', data.refresh_token);
     localStorage.setItem('sb_cli_user',    JSON.stringify(data.user));
     localStorage.setItem('sb_cli_nombre',  nombre);
+
+    // Si Supabase devolvió sesión directa (sin confirmación de email),
+    // crear la fila cliente inmediatamente.
+    try { await asegurarClienteRegistrado(data.access_token, data.user); } catch (_) {}
+  }
+}
+
+/* ------------------------------------------------------------
+   asegurarClienteRegistrado — crea la fila `cliente` si no existe.
+   Necesario para que /mi-cuenta encuentre un perfil y para asociar
+   citas futuras al mismo id_cliente que el JWT.
+
+   La policy RLS `cliente_registro_publico` permite INSERT cuando
+   auth_user_id = auth.uid() AND tipo = 'registrado'. Por eso se
+   manda el token del usuario en el Authorization header.
+
+   Lee nombre/apellido/telefono de user_metadata (que se setea en
+   el signup); si faltan, NO inserta (no podemos cumplir el NOT
+   NULL de telefono con datos inventados).
+   ------------------------------------------------------------ */
+async function asegurarClienteRegistrado(token, user) {
+  if (!user || !user.id) return null;
+
+  // 1) ¿Ya existe?
+  try {
+    const existing = await db.get(
+      'cliente',
+      'id_cliente,nombre',
+      { auth_user_id: user.id },
+      token
+    );
+    if (existing.length) {
+      sesionCliente.nombre = existing[0].nombre || null;
+      if (existing[0].nombre) localStorage.setItem('sb_cli_nombre', existing[0].nombre);
+      return existing[0].id_cliente;
+    }
+  } catch (err) {
+    console.warn('Lookup de cliente falló:', err);
+  }
+
+  // 2) No existe → intentar crear con user_metadata
+  const meta = user.user_metadata || {};
+  const nombre   = (meta.nombre   || '').trim();
+  const apellido = (meta.apellido || '').trim();
+  const telefono = (meta.telefono || '').trim();
+
+  if (!nombre || !telefono) {
+    console.warn('user_metadata sin nombre/telefono: no se puede crear fila cliente.');
+    return null;
+  }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/cliente`, {
+      method: 'POST',
+      headers: {
+        'apikey':        SUPABASE_KEY,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
+        'Prefer':        'return=representation',
+      },
+      body: JSON.stringify({
+        auth_user_id: user.id,
+        nombre,
+        apellido: apellido || null,
+        telefono,
+        email: user.email,
+        tipo: 'registrado',
+      }),
+    });
+    if (!res.ok) {
+      console.error('Insert cliente falló:', await res.text());
+      return null;
+    }
+    const [row] = await res.json();
+    if (row?.nombre) {
+      sesionCliente.nombre = row.nombre;
+      localStorage.setItem('sb_cli_nombre', row.nombre);
+    }
+    return row?.id_cliente || null;
+  } catch (err) {
+    console.error('Error creando cliente:', err);
+    return null;
   }
 }
 
@@ -1449,17 +1583,27 @@ function actualizarNavAuth() {
   document.getElementById('authRegisterForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const nombre   = document.getElementById('regNombre').value.trim();
+    const apellido = document.getElementById('regApellido').value.trim();
+    const telefono = limpiarTelefono(document.getElementById('regTelefono').value);
     const email    = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
     const errEl    = document.getElementById('authRegisterError');
     const btn      = document.getElementById('authRegisterBtn');
 
     errEl.textContent = '';
+
+    if (!nombre || !apellido || !telefono || !email || !password) {
+      errEl.textContent = 'Completa todos los campos.';
+      return;
+    }
+    const vt = validarTelefonoFrontend(telefono);
+    if (!vt.valido) { errEl.textContent = vt.error; return; }
+
     btn.disabled      = true;
     btn.textContent   = 'Creando cuenta…';
 
     try {
-      await registrarCliente(email, password, nombre);
+      await registrarCliente(email, password, nombre, apellido, telefono);
       actualizarNavAuth();
 
       // Si Supabase requiere confirmación de email (lo habitual), no hay

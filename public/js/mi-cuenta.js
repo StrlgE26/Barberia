@@ -114,8 +114,24 @@
       console.error('No se pudo leer cliente:', err);
       return showGate();
     }
+
+    // Si el usuario tiene Auth pero NO tiene fila en cliente, intentar crearla
+    // ahora con su user_metadata (ej. cuenta vieja anterior al fix).
+    if (!rows.length && typeof asegurarClienteRegistrado === 'function') {
+      const idCreado = await asegurarClienteRegistrado(tok, usr);
+      if (idCreado) {
+        rows = await db.get('cliente',
+          'id_cliente,nombre,apellido,telefono,email,tipo,auth_user_id,fecha_registro',
+          { auth_user_id: usr.id }, tok);
+      }
+    }
+
     if (!rows.length) {
-      showToast('No tienes perfil de cliente vinculado. Contacta al administrador.', 'error');
+      // No hay perfil y no se pudo crear (faltan datos en user_metadata).
+      // Cerrar sesión limpia y redirigir a registro nuevo.
+      showToast('Tu cuenta no tiene perfil completo. Por favor regístrate de nuevo.', 'error');
+      ['sb_cli_token','sb_cli_refresh','sb_cli_user','sb_cli_nombre'].forEach(k => localStorage.removeItem(k));
+      setTimeout(() => { window.location.href = '/?login=1'; }, 2200);
       return showGate();
     }
     session.cliente = rows[0];
