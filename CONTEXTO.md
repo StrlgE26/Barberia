@@ -249,13 +249,3 @@ frontend.
 
 ---
 
-## Notas para Claude Code
-
-1. **Nunca usar `innerHTML` con datos del usuario sin `escapeHtml()`**
-2. **Todas las consultas a Supabase usan el wrapper `db.get/post/rpc`**
-3. **El token de sesión se guarda en `sessionStorage`, no `localStorage`**
-4. **RLS está activo en todas las tablas** — si algo no carga, revisar políticas
-5. **Los triggers de estado del barbero son automáticos** — no actualizar
-   `estado_actual` manualmente desde el frontend
-6. **`cambiar_estado_cita` valida transiciones** — no hacer PATCH directo
-   a la tabla `cita` para cambiar estado
