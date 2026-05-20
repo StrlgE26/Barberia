@@ -104,3 +104,126 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION buscar_cliente_por_email(VARCHAR) TO anon, authenticated;
+
+
+-- ------------------------------------------------------------
+-- FIX 5 — RPC cancelar_mi_cita (cliente cancela su propia cita)
+-- El cliente registrado puede cancelar sus citas futuras desde
+-- la página /mi-cuenta. Valida ownership comparando auth.uid()
+-- con cliente.auth_user_id. SECURITY DEFINER porque las policies
+-- de cita solo permiten al cliente SELECT, no UPDATE.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION cancelar_mi_cita(
+  p_id_cita UUID,
+  p_motivo  TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  ok       BOOLEAN,
+  mensaje  TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_id_cliente UUID;
+  v_estado     estado_cita;
+BEGIN
+  -- Tomar id_cliente y estado actual
+  SELECT c.id_cliente, c.estado
+    INTO v_id_cliente, v_estado
+  FROM cita c
+  WHERE c.id_cita = p_id_cita;
+
+  IF v_id_cliente IS NULL THEN
+    RETURN QUERY SELECT FALSE, 'Cita no encontrada'::TEXT;
+    RETURN;
+  END IF;
+
+  -- Verificar que la cita le pertenece al cliente del JWT actual
+  IF NOT EXISTS (
+    SELECT 1 FROM cliente
+    WHERE id_cliente   = v_id_cliente
+      AND auth_user_id = auth.uid()
+  ) THEN
+    RETURN QUERY SELECT FALSE, 'No tienes permiso para cancelar esta cita'::TEXT;
+    RETURN;
+  END IF;
+
+  -- Solo se pueden cancelar citas activas
+  IF v_estado IN ('completada', 'cancelada', 'no_presentada') THEN
+    RETURN QUERY SELECT FALSE, 'Esta cita ya no se puede cancelar'::TEXT;
+    RETURN;
+  END IF;
+
+  UPDATE cita
+  SET estado             = 'cancelada',
+      motivo_cancelacion = COALESCE(NULLIF(TRIM(p_motivo), ''), 'Cancelada por el cliente')
+  WHERE id_cita = p_id_cita;
+
+  RETURN QUERY SELECT TRUE, 'Cita cancelada exitosamente'::TEXT;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION cancelar_mi_cita(UUID, TEXT) TO authenticated;
+
+
+-- ------------------------------------------------------------
+-- FIX 6 — confirmar_cita_por_token también mueve estado
+-- Antes solo seteaba confirmado=TRUE pero dejaba estado en
+-- 'pendiente_confirmacion'. El dashboard la seguía viendo como
+-- "por confirmar" aunque el cliente ya hubiera confirmado.
+-- Ahora también cambia estado → 'pendiente' (cita activa normal).
+-- DROP previo porque OR REPLACE no permite cambiar tipos de salida.
+-- ------------------------------------------------------------
+DROP FUNCTION IF EXISTS confirmar_cita_por_token(VARCHAR);
+
+CREATE FUNCTION confirmar_cita_por_token(p_token VARCHAR)
+RETURNS TABLE (
+  exito BOOLEAN,
+  mensaje TEXT,
+  id_cita UUID
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_id_cita UUID;
+  v_ya_usado BOOLEAN;
+  v_expirado BOOLEAN;
+BEGIN
+  SELECT id_cita, usado, fecha_expiracion < NOW()
+  INTO v_id_cita, v_ya_usado, v_expirado
+  FROM token_confirmacion_cita
+  WHERE token = p_token
+  LIMIT 1;
+
+  IF v_id_cita IS NULL THEN
+    RETURN QUERY SELECT FALSE, 'Enlace inválido o expirado'::TEXT, NULL::UUID;
+    RETURN;
+  END IF;
+
+  IF v_ya_usado THEN
+    RETURN QUERY SELECT FALSE, 'Este enlace ya fue utilizado'::TEXT, v_id_cita;
+    RETURN;
+  END IF;
+
+  IF v_expirado THEN
+    RETURN QUERY SELECT FALSE, 'El enlace expiró. Por favor, reserva nuevamente'::TEXT, v_id_cita;
+    RETURN;
+  END IF;
+
+  UPDATE cita
+  SET confirmado = TRUE,
+      estado     = 'pendiente'
+  WHERE id_cita = v_id_cita
+    AND estado  = 'pendiente_confirmacion';
+
+  UPDATE token_confirmacion_cita
+  SET usado = TRUE, fecha_confirmacion = NOW()
+  WHERE token = p_token;
+
+  RETURN QUERY SELECT TRUE, 'Cita confirmada exitosamente'::TEXT, v_id_cita;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION confirmar_cita_por_token(VARCHAR) TO anon, authenticated;

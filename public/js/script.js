@@ -1274,11 +1274,19 @@ function actualizarNavAuth() {
 
   document.getElementById('navMisCitas')?.addEventListener('click', () => {
     document.getElementById('navCuentaDropdown').hidden = true;
-    showToast('Próximamente: historial de tus citas.', 'success');
+    window.location.href = '/mi-cuenta';
   });
 
   // Aplicar estado inicial de sesión
   actualizarNavAuth();
+
+  // Si la URL trae ?login=1 (p.ej. redirect desde /mi-cuenta cuando no hay
+  // sesión), abrir el modal de auth automáticamente.
+  if (new URLSearchParams(window.location.search).get('login') === '1') {
+    if (typeof window._openAuthModal === 'function') {
+      setTimeout(() => window._openAuthModal('login'), 300);
+    }
+  }
 })();
 
 /* ============================================================

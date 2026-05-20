@@ -3414,7 +3414,15 @@ BEGIN
   END IF;
 
   -- Validación exitosa - confirmar cita
-  UPDATE cita SET confirmado = TRUE WHERE id_cita = v_id_cita;
+  --   confirmado=TRUE marca la confirmación explícita del cliente,
+  --   y mueve el estado de 'pendiente_confirmacion' a 'pendiente' para
+  --   que el dashboard / triggers la traten como cita activa normal.
+  UPDATE cita
+  SET confirmado = TRUE,
+      estado     = 'pendiente'
+  WHERE id_cita = v_id_cita
+    AND estado  = 'pendiente_confirmacion';
+
   UPDATE token_confirmacion_cita
   SET usado = TRUE, fecha_confirmacion = NOW()
   WHERE token = p_token;
@@ -3496,3 +3504,62 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION buscar_cliente_por_email(VARCHAR) TO anon, authenticated;
+
+
+-- ############################################################
+-- ## MODULO 20 — RPC cancelar_mi_cita (cliente cancela la suya)
+-- ############################################################
+-- El cliente registrado puede cancelar sus citas futuras desde
+-- la página /mi-cuenta. Valida ownership comparando auth.uid()
+-- con cliente.auth_user_id. SECURITY DEFINER porque las policies
+-- de cita solo permiten al cliente SELECT, no UPDATE.
+
+CREATE OR REPLACE FUNCTION cancelar_mi_cita(
+  p_id_cita UUID,
+  p_motivo  TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  ok       BOOLEAN,
+  mensaje  TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_id_cliente UUID;
+  v_estado     estado_cita;
+BEGIN
+  SELECT c.id_cliente, c.estado
+    INTO v_id_cliente, v_estado
+  FROM cita c
+  WHERE c.id_cita = p_id_cita;
+
+  IF v_id_cliente IS NULL THEN
+    RETURN QUERY SELECT FALSE, 'Cita no encontrada'::TEXT;
+    RETURN;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM cliente
+    WHERE id_cliente   = v_id_cliente
+      AND auth_user_id = auth.uid()
+  ) THEN
+    RETURN QUERY SELECT FALSE, 'No tienes permiso para cancelar esta cita'::TEXT;
+    RETURN;
+  END IF;
+
+  IF v_estado IN ('completada', 'cancelada', 'no_presentada') THEN
+    RETURN QUERY SELECT FALSE, 'Esta cita ya no se puede cancelar'::TEXT;
+    RETURN;
+  END IF;
+
+  UPDATE cita
+  SET estado             = 'cancelada',
+      motivo_cancelacion = COALESCE(NULLIF(TRIM(p_motivo), ''), 'Cancelada por el cliente')
+  WHERE id_cita = p_id_cita;
+
+  RETURN QUERY SELECT TRUE, 'Cita cancelada exitosamente'::TEXT;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION cancelar_mi_cita(UUID, TEXT) TO authenticated;
