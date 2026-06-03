@@ -1,3 +1,6 @@
+Admin chocolate
+sucursal@barbercerdas.com
+Sucursal#2024!
 # Barber Cerdas — Sistema de gestión de citas
 
 Sistema web de reservas para **Academia De Barberia The Hipster** (Lindavista, CDMX). Permite a los clientes agendar citas online, a los barberos gestionar su día desde un dashboard y al admin orquestar walk-ins y reservas telefónicas. Pivoteó de práctica académica a MVP real con datos del cliente.
