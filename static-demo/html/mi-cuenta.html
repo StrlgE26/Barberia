@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Cuenta — The Hipster [DEMO]</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css"/>
+  <link rel="stylesheet" href="../css/mi-cuenta.css"/>
+</head>
+<body class="page-account">
+
+  <!-- TOP BAR -->
+  <header class="account-topbar">
+    <div class="account-topbar__inner">
+      <a href="/" class="account-topbar__logo">
+        <span class="nav__logo-the">The</span>
+        <span class="nav__logo-hipster">Hipster</span>
+      </a>
+      <div class="account-topbar__actions">
+        <span class="account-topbar__hello" id="topbarHello"></span>
+        <button class="btn btn--ghost btn--sm" id="topbarLogout" hidden>Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- GATE (no autenticado) -->
+  <div class="account-gate" id="accountGate">
+    <div class="account-gate__panel">
+      <p class="section-header__tag">Tu espacio</p>
+      <h1 class="account-gate__title">Mi <em>Cuenta</em></h1>
+      <p class="account-gate__msg">Inicia sesión para ver tus citas, historial y perfil.</p>
+      <div class="account-gate__actions">
+        <button class="btn btn--primary" id="gateLoginBtn">Iniciar Sesión</button>
+        <button class="btn btn--ghost"   id="gateRegisterBtn">Crear cuenta</button>
+      </div>
+      <div class="demo-hint">
+        <strong>Demo:</strong> usa <strong>cliente@barberia.com</strong> / cliente123
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL (autenticado) -->
+  <main class="account-main is-hidden" id="accountMain">
+    <div class="account-hero">
+      <p class="section-header__tag">Bienvenido de vuelta</p>
+      <h1 class="account-hero__title">Hola, <em id="mainNombre">—</em></h1>
+      <p class="account-hero__subtitle" id="mainSub">Miembro desde —</p>
+    </div>
+
+    <nav class="account-tabs" role="tablist">
+      <button class="account-tab is-active" data-section="proximas" role="tab" aria-selected="true">
+        Próximas
+        <span class="account-tab__count" id="tabCountProximas">0</span>
+      </button>
+      <button class="account-tab" data-section="historial" role="tab" aria-selected="false">
+        Historial
+        <span class="account-tab__count" id="tabCountHistorial">0</span>
+      </button>
+      <button class="account-tab" data-section="estadisticas" role="tab" aria-selected="false">
+        Estadísticas
+      </button>
+      <button class="account-tab" data-section="perfil" role="tab" aria-selected="false">
+        Perfil
+      </button>
+    </nav>
+
+    <!-- PRÓXIMAS CITAS -->
+    <section class="account-section is-active" id="section-proximas">
+      <div class="account-section__head">
+        <h2 class="account-section__title">Próximas citas</h2>
+        <a href="/" class="btn btn--primary btn--sm">+ Agendar nueva</a>
+      </div>
+      <div class="cita-list" id="listaProximas"></div>
+      <p class="empty-state is-hidden" id="emptyProximas">No tienes citas próximas. <a href="/">Agenda una ahora.</a></p>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section class="account-section" id="section-historial">
+      <div class="account-section__head">
+        <h2 class="account-section__title">Historial de citas</h2>
+      </div>
+      <div class="cita-list" id="listaHistorial"></div>
+      <p class="empty-state is-hidden" id="emptyHistorial">Sin historial de citas aún.</p>
+    </section>
+
+    <!-- ESTADÍSTICAS -->
+    <section class="account-section" id="section-estadisticas">
+      <div class="account-section__head">
+        <h2 class="account-section__title">Mis estadísticas</h2>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </section>
+
+    <!-- PERFIL -->
+    <section class="account-section" id="section-perfil">
+      <div class="account-section__head">
+        <h2 class="account-section__title">Mi perfil</h2>
+      </div>
+      <form class="account-form" id="perfilForm" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="perfilNombre">Nombre</label>
+            <input class="form-input" type="text" id="perfilNombre" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="perfilApellido">Apellidos</label>
+            <input class="form-input" type="text" id="perfilApellido" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="perfilTelefono">Teléfono / WhatsApp</label>
+          <input class="form-input" type="tel" id="perfilTelefono" autocomplete="tel"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="perfilEmail">Email</label>
+          <input class="form-input" type="email" id="perfilEmail" readonly/>
+        </div>
+        <div class="account-form__footer">
+          <button type="submit" class="btn btn--primary" id="perfilGuardar">Guardar cambios</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- MODAL AUTH (para gate) -->
+  <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" aria-hidden="true">
+    <div class="auth-modal__backdrop" id="authModalBackdrop"></div>
+    <div class="auth-modal__panel">
+      <button class="modal__close" id="authModalClose" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab is-active" data-tab="login" role="tab" aria-selected="true">Iniciar Sesión</button>
+        <button class="auth-tab" data-tab="register" role="tab" aria-selected="false">Registrarse</button>
+      </div>
+      <div class="auth-panel is-active" id="authPanelLogin" role="tabpanel">
+        <h2 class="auth-title" id="authModalTitle">Bienvenido de vuelta</h2>
+        <form class="auth-form" id="authLoginForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="authEmail">Email</label>
+            <input class="form-input" type="email" id="authEmail" placeholder="cliente@barberia.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="authPassword">Contraseña</label>
+            <input class="form-input" type="password" id="authPassword" placeholder="••••••••" required autocomplete="current-password"/>
+          </div>
+          <p class="auth-error" id="authLoginError"></p>
+          <button type="submit" class="btn btn--primary btn--full" id="authLoginBtn">Iniciar Sesión</button>
+        </form>
+      </div>
+      <div class="auth-panel" id="authPanelRegister" role="tabpanel">
+        <h2 class="auth-title">Crea tu cuenta</h2>
+        <form class="auth-form" id="authRegisterForm" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="regNombre">Nombre</label>
+              <input class="form-input" type="text" id="regNombre" placeholder="Tu nombre" required autocomplete="given-name"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regApellido">Apellidos</label>
+              <input class="form-input" type="text" id="regApellido" placeholder="Tus apellidos" required autocomplete="family-name"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regTelefono">Teléfono</label>
+            <input class="form-input" type="tel" id="regTelefono" placeholder="55 1234 5678" required autocomplete="tel"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email</label>
+            <input class="form-input" type="email" id="regEmail" placeholder="tu@email.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Contraseña</label>
+            <input class="form-input" type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required autocomplete="new-password"/>
+          </div>
+          <p class="auth-error" id="authRegisterError"></p>
+          <button type="submit" class="btn btn--primary btn--full" id="authRegisterBtn">Crear cuenta</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CANCELACIÓN -->
+  <div class="modal" id="cancelModal" role="dialog" aria-modal="true" aria-hidden="true" style="display:none">
+    <div class="modal__backdrop" id="cancelModalBackdrop"></div>
+    <div class="modal__panel modal__panel--sm">
+      <button class="modal__close" id="cancelModalClose" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <header class="modal__header">
+        <h2 class="modal__title">¿Cancelar cita?</h2>
+        <p class="modal__subtitle" id="cancelModalDesc"></p>
+      </header>
+      <div class="modal__form">
+        <div class="form-group">
+          <label class="form-label" for="cancelMotivo">Motivo (opcional)</label>
+          <input class="form-input" type="text" id="cancelMotivo" placeholder="¿Por qué necesitas cancelar?"/>
+        </div>
+        <div class="wizard-footer">
+          <button class="btn btn--ghost" id="cancelModalNo">No, conservar</button>
+          <button class="btn btn--danger" id="cancelModalOk">Sí, cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-banner">⚠ VERSIÓN DEMO — <strong>cliente@barberia.com / cliente123</strong></div>
+
+  <script src="../js/mock-data.js"></script>
+  <script src="../js/script.js" defer></script>
+  <script src="../js/mi-cuenta.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Academia De Barberia The Hipster CDMX — Demo estática."/>
+  <title>Academia De Barberia The Hipster CDMX [DEMO]</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ================================================ NAVBAR ================================================ -->
+  <nav class="nav" id="navbar">
+    <div class="nav__container">
+      <a href="#inicio" class="nav__logo">
+        <span class="nav__logo-the">The</span>
+        <span class="nav__logo-hipster">Hipster</span>
+      </a>
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav__drawer" id="navMenu">
+        <ul class="nav__menu" role="list">
+          <li><a href="#servicios" class="nav__link">Servicios</a></li>
+          <li><a href="#equipo"    class="nav__link">Equipo</a></li>
+          <li><a href="#ubicacion" class="nav__link">Ubicación</a></li>
+        </ul>
+        <div class="nav__actions">
+          <button class="nav__auth-btn js-open-auth" id="navAcceder">Acceder</button>
+          <div class="nav__cuenta" id="navCuenta" hidden>
+            <button class="nav__cuenta-trigger" id="navCuentaToggle">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Mi cuenta
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="nav__cuenta-dropdown" id="navCuentaDropdown" hidden>
+              <button id="navMisCitas">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Mi cuenta
+              </button>
+              <button id="navLogoutBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+          <a href="#" class="btn btn--primary js-open-booking" id="nav-cta-btn" data-context="nav">Agendar Cita</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ================================================ HERO ================================================ -->
+  <section class="hero" id="inicio">
+    <div class="hero__bg">
+      <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=1600&auto=format&fit=crop&q=80" alt="Barbero profesional" class="hero__img"/>
+      <div class="hero__overlay"></div>
+    </div>
+    <div class="hero__content container">
+      <p class="hero__eyebrow">Lindavista · CDMX</p>
+      <h1 class="hero__title">Academia<br><em>The Hipster</em></h1>
+      <p class="hero__subtitle">Formación profesional. Cortes de alto nivel.<br>Riobamba 690, Lindavista.</p>
+      <div class="hero__actions">
+        <a href="#servicios" class="btn btn--primary btn--lg js-open-booking" id="hero-cta-btn" data-context="hero">Agendar mi Cita</a>
+        <a href="https://wa.me/5215589559791" target="_blank" rel="noopener" class="btn btn--ghost btn--lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+    <div class="hero__scroll" aria-hidden="true"><div class="hero__scroll-line"></div></div>
+  </section>
+
+  <!-- ================================================ SERVICIOS ================================================ -->
+  <section class="services" id="servicios">
+    <div class="container">
+      <header class="section-header">
+        <p class="section-header__tag">Nuestros servicios</p>
+        <h2 class="section-header__title">Lo que hacemos,<br><em>lo hacemos bien.</em></h2>
+      </header>
+      <div class="services__grid" id="serviciosGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================================================ EQUIPO ================================================ -->
+  <section class="team" id="equipo">
+    <div class="container">
+      <header class="section-header">
+        <p class="section-header__tag">Nuestro equipo</p>
+        <h2 class="section-header__title">Maestros<br><em>del oficio.</em></h2>
+      </header>
+      <div class="carousel" id="teamCarousel" role="region" aria-label="Equipo de barberos">
+        <div class="carousel__track" id="carouselTrack"></div>
+        <button class="carousel__btn carousel__btn--prev" id="carouselPrev" aria-label="Barbero anterior">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="carousel__btn carousel__btn--next" id="carouselNext" aria-label="Barbero siguiente">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="carousel__dots" id="carouselDots" aria-hidden="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================ UBICACIÓN ================================================ -->
+  <section class="location" id="ubicacion">
+    <div class="container">
+      <header class="section-header">
+        <p class="section-header__tag">Dónde encontrarnos</p>
+        <h2 class="section-header__title" id="sucursalesTitle">Visítanos en<br><em>tu zona.</em></h2>
+      </header>
+      <div class="sucursales-list" id="sucursalesContainer">
+        <p class="empty-state" style="padding:2rem">Cargando sucursales…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================ FOOTER ================================================ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <p class="footer__logo">
+            <span class="nav__logo-the">The</span>
+            <span class="nav__logo-hipster">Hipster</span>
+          </p>
+          <p class="footer__tagline">Academia De Barberia · Lindavista, CDMX</p>
+        </div>
+        <nav class="footer__nav" aria-label="Pie de página">
+          <a href="#servicios" class="footer__link">Servicios</a>
+          <a href="#equipo"    class="footer__link">Equipo</a>
+          <a href="#ubicacion" class="footer__link">Ubicación</a>
+        </nav>
+        <div class="footer__social">
+          <a href="https://www.instagram.com/academiadebarberia.hipster" target="_blank" rel="noopener" class="footer__social-link" aria-label="Instagram">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </a>
+          <a href="https://wa.me/5215589559791" target="_blank" rel="noopener" class="footer__social-link" aria-label="WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>&copy; <span id="currentYear"></span> Academia De Barberia The Hipster CDMX.</p>
+        <a href="/dashboard" class="footer__admin-link">Acceso personal</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================================================ MODAL — AGENDAR CITA ================================================ -->
+  <div class="modal" id="bookingModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <div class="modal__panel">
+      <button class="modal__close" id="modalClose" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <header class="modal__header">
+        <p class="section-header__tag">Reserva tu lugar</p>
+        <h2 class="modal__title" id="modalTitle">Agendar <em>Cita</em></h2>
+        <p class="modal__subtitle">Reserva en menos de 2 minutos.</p>
+      </header>
+      <ol class="wizard-steps" id="wizardSteps" aria-label="Progreso de reserva">
+        <li class="wizard-step is-active" data-step="1">
+          <span class="wizard-step__circle" aria-hidden="true">1</span>
+          <span class="wizard-step__label">Sucursal y servicios</span>
+        </li>
+        <li class="wizard-step__connector" aria-hidden="true"></li>
+        <li class="wizard-step" data-step="2">
+          <span class="wizard-step__circle" aria-hidden="true">2</span>
+          <span class="wizard-step__label">Barbero y horario</span>
+        </li>
+        <li class="wizard-step__connector" aria-hidden="true"></li>
+        <li class="wizard-step" data-step="3">
+          <span class="wizard-step__circle" aria-hidden="true">3</span>
+          <span class="wizard-step__label">Tus datos</span>
+        </li>
+      </ol>
+      <form class="modal__form wizard-form" id="bookingForm" novalidate>
+        <section class="wizard-panel is-active" data-panel="1" aria-labelledby="wp1-title">
+          <h3 class="wizard-panel__title" id="wp1-title">Sucursal y servicios</h3>
+          <div class="form-group">
+            <label class="form-label" for="fieldSucursal">Sucursal</label>
+            <select class="form-input form-select" id="fieldSucursal" required>
+              <option value="">Selecciona una sucursal…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Servicios <span class="form-label__hint">(puedes elegir varios)</span></label>
+            <div class="service-cards-grid" id="serviceCardsGrid" role="group" aria-label="Servicios disponibles"></div>
+            <p class="wizard-summary-line" id="step1Total" hidden></p>
+          </div>
+        </section>
+        <section class="wizard-panel" data-panel="2" aria-labelledby="wp2-title" hidden>
+          <h3 class="wizard-panel__title" id="wp2-title">Barbero y horario</h3>
+          <div class="form-group">
+            <label class="form-label" for="fieldBarber">Barbero</label>
+            <select class="form-input form-select" id="fieldBarber" required>
+              <option value="">Selecciona un barbero…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="fieldDate">Fecha</label>
+            <input class="form-input" type="date" id="fieldDate" required/>
+          </div>
+          <div class="form-group is-hidden" id="slotsContainer">
+            <label class="form-label">Hora de inicio</label>
+            <div class="slot-pill-grid" id="slotPillGrid" role="radiogroup" aria-label="Horarios disponibles"></div>
+            <p class="wizard-empty-slots is-hidden" id="slotsEmpty">Sin horarios disponibles ese día.</p>
+          </div>
+        </section>
+        <section class="wizard-panel" data-panel="3" aria-labelledby="wp3-title" hidden>
+          <h3 class="wizard-panel__title" id="wp3-title">Tus datos</h3>
+          <div class="summary-card" id="summaryCard"></div>
+          <div class="wizard-logged-banner is-hidden" id="loggedBanner">
+            <p>Reservando con la cuenta de <strong id="loggedName"></strong></p>
+            <a href="#" id="editarPerfilLink">Editar perfil</a>
+          </div>
+          <div class="wizard-alert is-hidden" id="emailAuthAlert" role="alert">
+            <p>Este email ya tiene una cuenta. <a href="#" id="emailAuthLogin">Inicia sesión</a> para asociar esta reserva a tu historial.</p>
+          </div>
+          <div id="guestFields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldName">Nombre</label>
+                <input class="form-input" type="text" id="fieldName" name="nombre" placeholder="Tu nombre" required autocomplete="given-name"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldApellidos">Apellidos</label>
+                <input class="form-input" type="text" id="fieldApellidos" name="apellidos" placeholder="Tus apellidos" required autocomplete="family-name"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="fieldPhone">WhatsApp / teléfono</label>
+              <input class="form-input" type="tel" id="fieldPhone" name="telefono" placeholder="55 1234 5678" required autocomplete="tel"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="fieldEmail">Email</label>
+              <input class="form-input" type="email" id="fieldEmail" name="email" placeholder="tu@email.com" required autocomplete="email"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="fieldNotas">Notas <span class="form-label__hint">(opcional)</span></label>
+              <input class="form-input" type="text" id="fieldNotas" name="notas" placeholder="Alguna indicación especial…"/>
+            </div>
+          </div>
+          <p class="modal__disclaimer">Al agendar aceptas que te contactemos para confirmar tu cita.</p>
+        </section>
+        <div class="wizard-footer">
+          <button type="button" class="btn btn--ghost" id="wizardPrev" hidden>‹ Volver</button>
+          <button type="button" class="btn btn--primary wizard-footer__main" id="wizardNext">Siguiente ›</button>
+          <button type="submit" class="btn btn--primary wizard-footer__main" id="submitBookingBtn" hidden>Confirmar Reserva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <a href="#" class="fab js-open-booking" id="fab-btn" aria-label="Agendar cita" data-context="fab">✂</a>
+
+  <!-- ================================================ MODAL AUTH ================================================ -->
+  <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" aria-hidden="true">
+    <div class="auth-modal__backdrop" id="authModalBackdrop"></div>
+    <div class="auth-modal__panel">
+      <button class="modal__close" id="authModalClose" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab is-active" data-tab="login" role="tab" aria-selected="true">Iniciar Sesión</button>
+        <button class="auth-tab" data-tab="register" role="tab" aria-selected="false">Registrarse</button>
+      </div>
+      <div class="auth-panel is-active" id="authPanelLogin" role="tabpanel">
+        <h2 class="auth-title" id="authModalTitle">Bienvenido de vuelta</h2>
+        <form class="auth-form" id="authLoginForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="authEmail">Email</label>
+            <input class="form-input" type="email" id="authEmail" placeholder="cliente@barberia.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="authPassword">Contraseña</label>
+            <input class="form-input" type="password" id="authPassword" placeholder="••••••••" required autocomplete="current-password"/>
+          </div>
+          <p class="auth-error" id="authLoginError"></p>
+          <button type="submit" class="btn btn--primary btn--full" id="authLoginBtn">Iniciar Sesión</button>
+        </form>
+        <div class="auth-divider"><span>o</span></div>
+        <button class="btn btn--ghost btn--full" id="authSinCuenta">Continuar sin cuenta →</button>
+      </div>
+      <div class="auth-panel" id="authPanelRegister" role="tabpanel">
+        <h2 class="auth-title">Crea tu cuenta</h2>
+        <form class="auth-form" id="authRegisterForm" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="regNombre">Nombre</label>
+              <input class="form-input" type="text" id="regNombre" placeholder="Tu nombre" required autocomplete="given-name"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regApellido">Apellidos</label>
+              <input class="form-input" type="text" id="regApellido" placeholder="Tus apellidos" required autocomplete="family-name"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regTelefono">Teléfono</label>
+            <input class="form-input" type="tel" id="regTelefono" placeholder="55 1234 5678" required autocomplete="tel"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email</label>
+            <input class="form-input" type="email" id="regEmail" placeholder="tu@email.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Contraseña</label>
+            <input class="form-input" type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required autocomplete="new-password"/>
+          </div>
+          <p class="auth-error" id="authRegisterError"></p>
+          <button type="submit" class="btn btn--primary btn--full" id="authRegisterBtn">Crear cuenta</button>
+        </form>
+        <div class="auth-divider"><span>o</span></div>
+        <button class="btn btn--ghost btn--full" id="regSinCuenta">Continuar sin cuenta →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-banner">⚠ VERSIÓN DEMO — Datos simulados · Sin conexión real a base de datos · <strong>cliente@barberia.com / cliente123</strong></div>
+
+  <script src="../js/mock-data.js"></script>
+  <script src="../js/script.js"></script>
+</body>
+</html>

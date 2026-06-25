@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Hipster — Registro [DEMO]</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/kiosko.css"/>
+</head>
+<body>
+
+<div class="kiosko" id="kiosko">
+
+  <main class="kiosko__main">
+
+    <!-- PASO 1: BIENVENIDA -->
+    <div class="kiosko-step is-active" id="step-bienvenida">
+      <div class="kiosko-step__inner bienvenida">
+        <div class="bienvenida__logo">
+          <span class="logo-the">The</span>
+          <span class="logo-hipster">Hipster</span>
+        </div>
+        <p class="bienvenida__sub">Academia de Barbería · Lindavista</p>
+        <p class="bienvenida__msg">Regístrate para tomar<br>tu lugar en la cola</p>
+        <button class="btn-kiosko btn-kiosko--primary" id="btnComenzar">Toca para comenzar</button>
+      </div>
+    </div>
+
+    <!-- PASO 2: NOMBRE Y TELÉFONO -->
+    <div class="kiosko-step" id="step-datos">
+      <div class="kiosko-step__inner">
+        <h2 class="kiosko-step__titulo">¿Cómo te llamas?</h2>
+        <div class="kiosko-form">
+          <div class="kiosko-form__group">
+            <label class="kiosko-form__label" for="inputNombre">Nombre</label>
+            <input class="kiosko-form__input" type="text" id="inputNombre" placeholder="Tu nombre completo" autocomplete="off"/>
+          </div>
+          <div class="kiosko-form__group">
+            <label class="kiosko-form__label" for="inputTelefono">WhatsApp / Teléfono</label>
+            <input class="kiosko-form__input" type="tel" id="inputTelefono" placeholder="55 1234 5678" autocomplete="off" inputmode="numeric"/>
+          </div>
+          <p class="kiosko-form__error" id="datosError"></p>
+        </div>
+        <div class="kiosko-nav">
+          <button class="btn-kiosko btn-kiosko--ghost" data-back="bienvenida">← Regresar</button>
+          <button class="btn-kiosko btn-kiosko--primary" id="btnDatosSig">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 3: SERVICIO -->
+    <div class="kiosko-step" id="step-servicio">
+      <div class="kiosko-step__inner">
+        <h2 class="kiosko-step__titulo">¿Qué servicio deseas?</h2>
+        <p class="kiosko-step__sub">Toca el servicio para seleccionarlo</p>
+        <div class="servicios-grid" id="serviciosGrid"></div>
+        <div class="kiosko-nav">
+          <button class="btn-kiosko btn-kiosko--ghost" data-back="datos">← Regresar</button>
+          <button class="btn-kiosko btn-kiosko--primary" id="btnServicioSig" disabled>Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 4: BARBERO -->
+    <div class="kiosko-step" id="step-barbero">
+      <div class="kiosko-step__inner">
+        <h2 class="kiosko-step__titulo">¿Con quién quieres?</h2>
+        <p class="kiosko-step__sub">La opción automática elige al barbero disponible más rápido</p>
+        <div class="barberos-grid-kiosko" id="barberosGridKiosko"></div>
+        <div class="kiosko-nav">
+          <button class="btn-kiosko btn-kiosko--ghost" data-back="servicio">← Regresar</button>
+          <button class="btn-kiosko btn-kiosko--primary" id="btnRegistrar">Registrarme →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 5: CONFIRMACIÓN -->
+    <div class="kiosko-step" id="step-confirmacion">
+      <div class="kiosko-step__inner confirmacion">
+        <div class="confirmacion__check">✓</div>
+        <h2 class="confirmacion__titulo" id="confirmTitulo">¡Listo!</h2>
+        <p class="confirmacion__barbero" id="confirmBarbero"></p>
+        <div class="confirmacion__turno">
+          <span class="confirmacion__turno-label">Tu número en la cola</span>
+          <span class="confirmacion__turno-num" id="confirmNumero">#—</span>
+        </div>
+        <p class="confirmacion__espera" id="confirmEspera"></p>
+        <button class="btn-kiosko btn-kiosko--ghost btn-kiosko--full" id="btnVolver">Volver al inicio</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- COLA EN VIVO -->
+  <aside class="kiosko__cola">
+    <div class="cola__header">
+      <span class="cola__titulo">Cola en vivo</span>
+      <span class="cola__dot"></span>
+    </div>
+    <div class="cola__en-servicio" id="colaEnServicio"></div>
+    <div class="cola__lista" id="colaLista"></div>
+    <p class="cola__vacia" id="colaVacia">Sin clientes en espera</p>
+  </aside>
+
+</div>
+
+<script src="../js/mock-data.js"></script>
+<script src="../js/kiosko.js"></script>
+</body>
+</html>

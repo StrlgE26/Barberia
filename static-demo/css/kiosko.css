@@ -1,0 +1,727 @@
+/* ============================================================
+   BARBER CERDAS — kiosko.css
+   Pantalla de auto-registro para tablet/celular en sucursal
+   Touch-first: mínimo 60px en todos los elementos interactivos
+   ============================================================ */
+
+:root {
+  --clr-bg:          #0a0a0a;
+  --clr-surface:     #161616;
+  --clr-surface-2:   #1f1f1f;
+  --clr-border:      rgba(255,255,255,0.08);
+  --clr-gold:        #b88e3c;
+  --clr-gold-light:  #d4a853;
+  --clr-gold-glow:   rgba(184,142,60,0.12);
+  --clr-gold-border: rgba(184,142,60,0.35);
+  --clr-white:       #ffffff;
+  --clr-white-70:    rgba(255,255,255,0.7);
+  --clr-white-40:    rgba(255,255,255,0.4);
+  --clr-libre:       #22c55e;
+  --clr-espera:      #eab308;
+  --clr-ocupado:     #ef4444;
+  --clr-ausente:     #6b7280;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-ui:      'Barlow Condensed', sans-serif;
+  --font-body:    'Barlow', sans-serif;
+
+  --cola-w:   300px;
+  --radius:   16px;
+  --radius-sm: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--clr-bg);
+  color: var(--clr-white);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.5;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input { -webkit-user-select: text; user-select: text; }
+
+/* ============================================================
+   LAYOUT PRINCIPAL
+   ============================================================ */
+.kiosko {
+  display: grid;
+  grid-template-columns: 1fr var(--cola-w);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.kiosko__main {
+  position: relative;
+  overflow: hidden;
+}
+
+.kiosko-step {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kiosko-step.is-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kiosko-step__inner {
+  width: 100%;
+  max-width: 660px;
+  padding: 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.kiosko-step__titulo {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kiosko-step__sub {
+  font-size: 0.95rem;
+  color: var(--clr-white-40);
+  margin-top: -1rem;
+}
+
+/* ============================================================
+   PASO 1 — BIENVENIDA
+   ============================================================ */
+.bienvenida {
+  align-items: center;
+  text-align: center;
+  gap: 2rem;
+}
+
+.bienvenida__logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 4px;
+}
+
+.logo-the {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+}
+
+.logo-hipster {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 4.5rem;
+  color: var(--clr-gold);
+  line-height: 1;
+}
+
+.bienvenida__sub {
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+  margin-top: -1.25rem;
+}
+
+.bienvenida__msg {
+  font-size: 1.35rem;
+  color: var(--clr-white-70);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   PASO 2 — FORMULARIO
+   ============================================================ */
+.kiosko-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.kiosko-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kiosko-form__label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+}
+
+.kiosko-form__input {
+  background: var(--clr-surface-2);
+  border: 2px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  color: var(--clr-white);
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  width: 100%;
+  min-height: 60px;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.kiosko-form__input::placeholder { color: rgba(255,255,255,0.18); }
+.kiosko-form__input:focus {
+  outline: none;
+  border-color: var(--clr-gold);
+}
+
+.kiosko-form__error {
+  color: var(--clr-ocupado);
+  font-size: 0.9rem;
+  min-height: 1.4em;
+}
+
+/* ============================================================
+   PASO 3 — SERVICIOS
+   ============================================================ */
+.servicios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+}
+
+.servicio-card {
+  background: var(--clr-surface);
+  border: 2px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.servicio-card:active { transform: scale(0.96); }
+
+.servicio-card.is-selected {
+  border-color: var(--clr-gold);
+  background: var(--clr-gold-glow);
+}
+
+.servicio-card__nombre {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.servicio-card__precio {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--clr-gold);
+  line-height: 1;
+}
+
+.servicio-card__duracion {
+  font-size: 0.78rem;
+  color: var(--clr-white-40);
+}
+
+/* ============================================================
+   PASO 4 — BARBEROS
+   ============================================================ */
+.barberos-grid-kiosko {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  max-height: 55vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.barbero-kiosko-card.es-auto {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+  border-color: var(--clr-gold-border);
+  background: var(--clr-gold-glow);
+}
+
+.barbero-kiosko-card.es-auto.is-selected {
+  border-color: var(--clr-gold);
+  background: rgba(184,142,60,0.2);
+}
+
+.barbero-kiosko-card {
+  background: var(--clr-surface);
+  border: 2px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  transition: border-color 0.18s, background 0.18s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 140px;
+}
+
+.barbero-kiosko-card:active { transform: scale(0.96); }
+
+.barbero-kiosko-card.is-selected {
+  border-color: var(--clr-gold);
+  background: var(--clr-gold-glow);
+}
+
+.barbero-kiosko-card.es-ausente {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.barbero-kiosko-card.es-ausente:active { transform: none; }
+
+.barbero-kiosko-card__auto-ico {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--clr-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.barbero-kiosko-card__foto {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 2px solid var(--clr-border);
+}
+
+.barbero-kiosko-card__info { flex: 1; min-width: 0; }
+
+.barbero-kiosko-card__nombre {
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.barbero-kiosko-card.es-auto .barbero-kiosko-card__nombre {
+  font-size: 1.05rem;
+}
+
+.barbero-kiosko-card__esp {
+  font-size: 0.72rem;
+  color: var(--clr-white-40);
+  margin-top: 2px;
+}
+
+.barbero-kiosko-card__badge {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 2px;
+}
+
+.barbero-kiosko-card__badge.libre    { background: rgba(34,197,94,0.15);   color: var(--clr-libre); }
+.barbero-kiosko-card__badge.en_espera{ background: rgba(234,179,8,0.15);   color: var(--clr-espera); }
+.barbero-kiosko-card__badge.ocupado  { background: rgba(239,68,68,0.15);   color: var(--clr-ocupado); }
+.barbero-kiosko-card__badge.ausente  { background: rgba(107,114,128,0.15); color: var(--clr-ausente); }
+
+.barbero-kiosko-card__espera {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  color: var(--clr-espera);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   PASO 5 — CONFIRMACIÓN
+   ============================================================ */
+.confirmacion {
+  align-items: center;
+  text-align: center;
+  gap: 1.75rem;
+}
+
+.confirmacion__check {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(34,197,94,0.12);
+  border: 2px solid var(--clr-libre);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  color: var(--clr-libre);
+}
+
+.confirmacion__titulo {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+}
+
+.confirmacion__barbero {
+  font-size: 1rem;
+  color: var(--clr-white-70);
+  margin-top: -0.75rem;
+}
+
+.confirmacion__turno {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.confirmacion__turno-label {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+}
+
+.confirmacion__turno-num {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--clr-gold);
+  line-height: 1;
+}
+
+.confirmacion__espera {
+  font-size: 1rem;
+  color: var(--clr-espera);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   NAVEGACIÓN DE PASOS
+   ============================================================ */
+.kiosko-nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+/* ============================================================
+   BOTONES — touch-first, mínimo 60px
+   ============================================================ */
+.btn-kiosko {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.75rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 2px solid transparent;
+  cursor: pointer;
+  min-height: 60px;
+  transition: background 0.18s, border-color 0.18s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-kiosko:active { transform: scale(0.97); }
+
+.btn-kiosko--primary {
+  background: var(--clr-gold);
+  color: #0a0a0a;
+  border-color: var(--clr-gold);
+}
+.btn-kiosko--primary:hover   { background: var(--clr-gold-light); }
+.btn-kiosko--primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-kiosko--ghost {
+  background: transparent;
+  color: var(--clr-white-70);
+  border-color: rgba(255,255,255,0.15);
+}
+.btn-kiosko--ghost:hover { border-color: var(--clr-white-40); }
+
+.btn-kiosko--full { width: 100%; }
+
+/* ============================================================
+   COLA EN VIVO — sidebar derecho
+   ============================================================ */
+.kiosko__cola {
+  background: var(--clr-surface);
+  border-left: 1px solid var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cola__header {
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.cola__titulo {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+}
+
+.cola__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clr-libre);
+  animation: cola-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cola-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+
+.cola__en-servicio {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cola__en-servicio:empty { display: none; }
+
+.cola-activo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: 8px;
+}
+
+.cola-activo__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clr-ocupado);
+  flex-shrink: 0;
+  animation: cola-pulse 1.4s ease-in-out infinite;
+}
+
+.cola-activo__info { min-width: 0; flex: 1; }
+
+.cola-activo__nombre {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cola-activo__barbero {
+  font-size: 0.68rem;
+  color: var(--clr-white-40);
+}
+
+.cola__lista {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cola-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--clr-border);
+  transition: border-color 0.4s, background 0.4s;
+}
+
+.cola-item.es-nuevo {
+  border-color: var(--clr-gold-border);
+  background: var(--clr-gold-glow);
+}
+
+.cola-item__num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: rgba(184,142,60,0.3);
+  line-height: 1;
+  min-width: 2.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.cola-item.es-nuevo .cola-item__num { color: var(--clr-gold); }
+
+.cola-item__info { min-width: 0; flex: 1; }
+
+.cola-item__nombre {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cola-item__barbero {
+  font-size: 0.68rem;
+  color: var(--clr-white-40);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cola-item__espera {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--clr-espera);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cola__vacia {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--clr-white-40);
+  font-size: 0.88rem;
+}
+
+.barbero-kiosko-card__foto--inicial {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--clr-surface-2);
+  border: 2px solid var(--clr-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--clr-gold);
+}
+
+.kiosko-msg {
+  grid-column: 1 / -1;
+  color: var(--clr-white-40);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.kiosko-msg--error { color: var(--clr-ocupado); }
+
+/* ============================================================
+   RESPONSIVE — portrait / celular
+   ============================================================ */
+@media (max-width: 720px) {
+  body { height: auto; overflow: auto; }
+
+  .kiosko {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .kiosko__main {
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  .kiosko-step { position: absolute; overflow-y: auto; }
+  .kiosko-step.is-active { min-height: 100dvh; }
+
+  .kiosko__cola {
+    border-left: none;
+    border-top: 1px solid var(--clr-border);
+    height: auto;
+    max-height: 50vh;
+  }
+
+  .cola__lista { max-height: 35vh; }
+
+  .kiosko-step__inner { padding: 2rem 1.5rem; }
+
+  .logo-hipster { font-size: 3.5rem; }
+  .kiosko-step__titulo { font-size: 1.8rem; }
+
+  .barberos-grid-kiosko {
+    grid-template-columns: 1fr 1fr;
+    max-height: none;
+  }
+
+  .servicios-grid { grid-template-columns: 1fr 1fr; }
+
+  .confirmacion__turno-num { font-size: 4rem; }
+}

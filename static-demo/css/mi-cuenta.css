@@ -1,0 +1,384 @@
+/* ============================================================
+   PÁGINA /mi-cuenta — dashboard del cliente
+   Reutiliza variables de styles.css (paleta dorado/negro)
+   ============================================================ */
+
+body.page-account {
+  background: var(--clr-bg);
+  min-height: 100vh;
+}
+
+/* ---------------- Top bar ---------------- */
+.account-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13, 13, 13, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--clr-border-gold);
+}
+.account-topbar__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.85rem var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.account-topbar__logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 1px;
+  color: var(--clr-white);
+}
+.account-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.account-topbar__hello {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+}
+
+/* ---------------- Gate (no logueado) ---------------- */
+.account-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 70px);
+  padding: var(--space-xl) var(--space-md);
+}
+.account-gate.is-hidden { display: none; }
+
+.account-gate__panel {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  background: var(--clr-bg-2);
+  border: 1px solid var(--clr-border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+}
+.account-gate__title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0.4rem 0 1rem;
+  color: var(--clr-white);
+}
+.account-gate__title em { font-style: italic; color: var(--clr-gold); }
+.account-gate__msg {
+  color: var(--clr-white-40);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-lg);
+}
+.account-gate__actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Demo hint for gate */
+.demo-hint {
+  background: rgba(184,142,60,0.06);
+  border: 1px solid rgba(184,142,60,0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+  color: var(--clr-white-40);
+  line-height: 1.6;
+  margin-top: var(--space-md);
+  text-align: left;
+}
+.demo-hint strong { color: var(--clr-gold); }
+
+/* ---------------- Main layout ---------------- */
+.account-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md) var(--space-2xl);
+}
+.account-main.is-hidden { display: none; }
+
+.account-hero {
+  margin-bottom: var(--space-xl);
+}
+.account-hero__title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--clr-white);
+  margin: 0.3rem 0 0.4rem;
+}
+.account-hero__title em { font-style: italic; color: var(--clr-gold); }
+.account-hero__subtitle {
+  color: var(--clr-white-40);
+  font-size: 0.95rem;
+}
+
+/* ---------------- Tabs ---------------- */
+.account-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--clr-border);
+  margin-bottom: var(--space-lg);
+  overflow-x: auto;
+}
+.account-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.85rem 1.1rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-tab:hover { color: var(--clr-white); }
+.account-tab.is-active {
+  color: var(--clr-white);
+  border-bottom-color: var(--clr-gold);
+}
+.account-tab__count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--clr-white-70);
+}
+.account-tab.is-active .account-tab__count {
+  background: var(--clr-gold);
+  color: var(--clr-bg);
+  border-color: var(--clr-gold);
+}
+
+/* ---------------- Sections ---------------- */
+.account-section { display: none; }
+.account-section.is-active { display: block; }
+
+.account-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.account-section__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--clr-white);
+  margin: 0;
+}
+
+/* ---------------- Lista de citas ---------------- */
+.cita-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+@media (max-width: 700px) {
+  .cita-list { grid-template-columns: 1fr; }
+}
+
+.cita-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color var(--transition);
+}
+.cita-card:hover { border-color: var(--clr-border-gold); }
+
+.cita-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.cita-card__fecha {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clr-gold);
+}
+.cita-card__title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--clr-white);
+  margin: 0;
+}
+.cita-card__row {
+  display: flex;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--clr-white-70);
+}
+.cita-card__row strong { color: var(--clr-white); font-weight: 600; }
+.cita-card__total {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clr-gold);
+  margin-top: 4px;
+}
+
+.cita-card__foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.cita-card__cancel-btn {
+  background: transparent;
+  border: 1.5px solid rgba(192, 57, 43, 0.5);
+  color: #ef6b5a;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.cita-card__cancel-btn:hover {
+  background: rgba(192, 57, 43, 0.15);
+  color: #ff8a7c;
+}
+
+/* ---------------- Badges de estado ---------------- */
+.cita-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+.cita-badge--pendiente_confirmacion { color: #eab308; }
+.cita-badge--pendiente               { color: #3b82f6; }
+.cita-badge--en_curso                { color: #10b981; }
+.cita-badge--completada              { color: #22c55e; }
+.cita-badge--cancelada               { color: #ef4444; }
+.cita-badge--no_presentada           { color: #9ca3af; }
+
+/* ---------------- Empty state ---------------- */
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--clr-white-40);
+  border: 1px dashed var(--clr-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+}
+.empty-state.is-hidden { display: none; }
+
+/* ---------------- Stats grid ---------------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+@media (min-width: 700px) {
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  text-align: center;
+}
+.stat-card--wide { grid-column: 1 / -1; }
+.stat-card__label {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clr-white-40);
+  margin: 0 0 8px;
+}
+.stat-card__value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--clr-gold);
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* ---------------- Form perfil ---------------- */
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 560px;
+}
+.account-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.form-input[readonly] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------------- Modal de cancelación ---------------- */
+.modal__panel--sm {
+  max-width: 440px;
+}
+
+.btn--ghost {
+  background: transparent;
+  border: 1.5px solid var(--clr-border);
+  color: var(--clr-white);
+}
+.btn--ghost:hover { border-color: var(--clr-white-40); }
+.btn--sm { padding: 0.5rem 0.9rem; font-size: 0.8rem; }
+
+/* Mobile tweaks */
+@media (max-width: 480px) {
+  .account-hero__title { font-size: 1.9rem; }
+  .account-section__title { font-size: 1.25rem; }
+  .stat-card__value { font-size: 1.4rem; }
+}

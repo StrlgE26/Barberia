@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — The Hipster [DEMO]</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+</head>
+<body>
+
+  <!-- PANTALLA DE LOGIN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-screen__bg"></div>
+    <div class="login-card">
+      <div class="login-card__logo">
+        <span class="logo-the">The</span>
+        <span class="logo-hipster">Hipster</span>
+      </div>
+      <p class="login-card__subtitle">Panel de Administración · Demo</p>
+
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Correo electrónico</label>
+          <input class="form-input" type="email" id="loginEmail"
+                 placeholder="admin@barberia.com" required autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Contraseña</label>
+          <input class="form-input" type="password" id="loginPassword"
+                 placeholder="••••••••" required autocomplete="current-password"/>
+        </div>
+        <p class="login-error" id="loginError"></p>
+        <button type="submit" class="btn btn--primary btn--full" id="loginBtn">
+          Entrar al panel
+        </button>
+      </form>
+
+      <div class="demo-hint">
+        <strong>Credenciales de demo:</strong><br>
+        Admin General: <strong>admin@barberia.com</strong> / admin123<br>
+        Admin Sucursal: <strong>sucursal@barberia.com</strong> / admin123<br>
+        Barbero: <strong>barbero@barberia.com</strong> / barbero123
+      </div>
+
+      <a href="/" class="login-card__back">← Volver a la landing</a>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PRINCIPAL -->
+  <div class="dashboard" id="dashboardApp" style="display:none">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__header">
+        <div class="sidebar__logo">
+          <span class="logo-the">The</span>
+          <span class="logo-hipster">Hipster</span>
+        </div>
+        <p class="sidebar__sucursal" id="sidebarSucursal">The Hipster Lindavista</p>
+      </div>
+
+      <nav class="sidebar__nav">
+        <button class="sidebar__nav-item is-active" data-panel="panel-barberos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Barberos
+        </button>
+        <button class="sidebar__nav-item" data-panel="panel-citas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Citas del día
+        </button>
+        <button class="sidebar__nav-item" data-panel="panel-walkin">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.82 19.79 19.79 0 01.5 1.18 2 2 0 012.68 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.45 7.35a16 16 0 006.18 6.18l1.71-1.48a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+          Reserva Telefónica
+        </button>
+        <button class="sidebar__nav-item" data-panel="panel-cola">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Cola de espera
+        </button>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="sidebar__user" id="sidebarUser">
+          <div class="sidebar__user-avatar" id="userAvatar">—</div>
+          <div class="sidebar__user-info">
+            <p class="sidebar__user-name" id="userName">Cargando…</p>
+            <p class="sidebar__user-role" id="userRole">—</p>
+          </div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Cerrar sesión">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main" id="mainContent">
+      <header class="topbar">
+        <div class="topbar__left">
+          <button class="topbar__menu-btn" id="sidebarToggle" aria-label="Menú">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="topbar__title" id="topbarTitle">Panel de Barberos</h1>
+            <p class="topbar__date" id="topbarDate"></p>
+          </div>
+        </div>
+        <div class="topbar__right">
+          <div class="topbar__realtime" id="realtimeIndicator">
+            <span class="topbar__realtime-dot"></span>
+            En vivo
+          </div>
+          <button class="topbar__refresh" id="refreshBtn" title="Actualizar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- PANEL BARBEROS -->
+      <section class="panel is-active" id="panel-barberos">
+        <div class="panel__loading" id="barberosLoading">
+          <div class="spinner"></div>
+          <p>Cargando barberos…</p>
+        </div>
+        <div class="barberos-grid" id="barberosGrid"></div>
+      </section>
+
+      <!-- PANEL CITAS -->
+      <section class="panel" id="panel-citas">
+        <div class="panel__loading" id="citasLoading">
+          <div class="spinner"></div>
+          <p>Cargando citas…</p>
+        </div>
+        <div class="citas-tabla-wrap">
+          <table class="citas-tabla" id="citasTabla">
+            <thead>
+              <tr>
+                <th>Hora</th><th>Cliente</th><th>Servicio</th>
+                <th>Barbero</th><th>Origen</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="citasTablaBody"></tbody>
+          </table>
+          <p class="empty-state" id="citasEmpty" style="display:none">No hay citas registradas para hoy.</p>
+        </div>
+      </section>
+
+      <!-- PANEL WALKIN -->
+      <section class="panel" id="panel-walkin">
+        <div class="walkin-layout">
+          <div class="walkin-form-wrap">
+            <h2 class="panel__heading">Reserva Telefónica</h2>
+            <p class="panel__subheading">Para clientes que llamaron o enviaron mensaje.</p>
+            <form class="walkin-form" id="walkinForm" novalidate>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="wkNombre">Nombre del cliente</label>
+                  <input class="form-input" type="text" id="wkNombre" placeholder="Juan Pérez" required/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="wkTelefono">Teléfono / WhatsApp</label>
+                  <input class="form-input" type="tel" id="wkTelefono" placeholder="55 1234 5678" required/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="wkServicio">Servicio</label>
+                <select class="form-input form-select" id="wkServicio" required>
+                  <option value="">Selecciona un servicio…</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="wkBarbero">Barbero</label>
+                <select class="form-input form-select" id="wkBarbero" required>
+                  <option value="">Selecciona un barbero…</option>
+                </select>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="wkFecha">Fecha</label>
+                  <input class="form-input" type="date" id="wkFecha" required/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="wkSlot">Horario disponible</label>
+                  <select class="form-input form-select" id="wkSlot" required disabled>
+                    <option value="">Selecciona servicio, barbero y fecha</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="wkNotas">Notas <span class="form-label__hint">(opcional)</span></label>
+                <input class="form-input" type="text" id="wkNotas" placeholder="Indicaciones especiales…"/>
+              </div>
+              <button type="submit" class="btn btn--primary btn--full" id="wkSubmitBtn">Crear reservación</button>
+            </form>
+          </div>
+          <div class="walkin-info">
+            <h3 class="walkin-info__title">Estado actual de barberos</h3>
+            <div class="walkin-estados" id="walkinEstados"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL COLA -->
+      <section class="panel" id="panel-cola">
+        <div class="panel__loading" id="colaLoading">
+          <div class="spinner"></div>
+          <p>Cargando cola…</p>
+        </div>
+        <div class="cola-grid" id="colaGrid"></div>
+        <p class="empty-state" id="colaEmpty" style="display:none">No hay clientes en cola en este momento.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL CONFIRMACIÓN -->
+  <div class="modal-confirm" id="modalConfirm" style="display:none">
+    <div class="modal-confirm__backdrop" id="modalConfirmBackdrop"></div>
+    <div class="modal-confirm__box">
+      <h3 class="modal-confirm__title" id="modalConfirmTitle">¿Cancelar esta cita?</h3>
+      <p class="modal-confirm__text" id="modalConfirmText"></p>
+      <div class="form-group">
+        <label class="form-label" for="motivoCancelacion">Motivo de cancelación</label>
+        <input class="form-input" type="text" id="motivoCancelacion" placeholder="Ej: Cliente no se presentó"/>
+      </div>
+      <div class="modal-confirm__actions">
+        <button class="btn btn--ghost" id="modalConfirmCancel">No, regresar</button>
+        <button class="btn btn--danger"  id="modalConfirmOk">Sí, cancelar cita</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/mock-data.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>
